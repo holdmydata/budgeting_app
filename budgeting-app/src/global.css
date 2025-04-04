@@ -1,0 +1,407 @@
+/* Full viewport sizing */
+html, body, #root {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+/* Ensure all MUI container elements expand properly */
+.MuiBox-root, 
+.MuiContainer-root, 
+.MuiPaper-root {
+  max-width: 100% !important;
+}
+
+/* Ensure chart containers expand properly */
+.recharts-responsive-container {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* Remove unwanted padding */
+.MuiToolbar-root + * {
+  padding: 0 !important;
+}
+
+/* Fix for dashboard layout */
+.MuiContainer-maxWidthLg,
+.MuiContainer-maxWidthXl {
+  max-width: none !important;
+}
+
+/* Proper content scrolling */
+.MuiBox-root[component="main"] {
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  height: auto !important;
+  min-height: calc(100vh - 64px) !important;
+}
+
+/* Ensure paper content fits properly */
+.MuiPaper-root {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 8px !important;
+}
+
+/* Add bottom padding to prevent content from being cut off */
+.MuiContainer-root {
+  padding-bottom: 24px !important;
+}
+
+/* Ensure grid items have proper heights */
+.MuiGrid-container .MuiGrid-item {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Make chart containers responsive */
+.MuiGrid-container .MuiPaper-root {
+  min-height: 300px;
+}
+
+@media (max-width: 600px) {
+  .MuiGrid-container .MuiPaper-root {
+    min-height: 250px;
+  }
+  
+  .MuiContainer-root {
+    padding-bottom: 16px !important;
+  }
+}
+
+/* Make sure dashboard components span the full width */
+.MuiGrid-container {
+  width: 100% !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  max-width: 100% !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
+.MuiGrid-item {
+  padding: 12px !important;
+}
+
+/* Ensure chart containers have proper height and spacing */
+.recharts-responsive-container {
+  width: 100% !important;
+  height: 300px !important;
+  min-height: 200px !important;
+  margin-top: 8px !important;
+}
+
+/* Dashboard-specific styles */
+.dashboard-card {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(33, 115, 70, 0.08);
+  transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.dashboard-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+  border-color: rgba(33, 115, 70, 0.15);
+}
+
+.dashboard-card-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+/* Add consistent fonts for the entire app */
+body {
+  font-family: 'Segoe UI', 'Roboto', 'Helvetica Neue', sans-serif;
+  color: #333;
+  background-color: #fcfcfc;
+  letter-spacing: 0.2px;
+}
+
+/* Improved typography styles */
+h1, h2, h3, h4, h5, h6, .MuiTypography-h1, .MuiTypography-h2, 
+.MuiTypography-h3, .MuiTypography-h4, .MuiTypography-h5, .MuiTypography-h6 {
+  font-weight: 700;
+  letter-spacing: 0.2px;
+}
+
+/* Enhanced chart styles */
+.recharts-wrapper {
+  font-family: 'Segoe UI', 'Roboto', 'Helvetica Neue', sans-serif;
+  font-size: 12px;
+}
+
+.recharts-cartesian-axis-tick-value,
+.recharts-label,
+.recharts-text {
+  fill: #555;
+}
+
+.recharts-legend-item-text {
+  color: #333 !important;
+}
+
+/* Improved scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(33, 115, 70, 0.05);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(33, 115, 70, 0.2);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(33, 115, 70, 0.3);
+}
+
+/* Fix for Dashboard margin issues */
+#root, 
+.MuiBox-root[component="main"],
+.MuiBox-root[component="main"] > .MuiBox-root,
+.MuiBox-root[component="main"] > .MuiBox-root > .MuiGrid-container,
+.MuiGrid-container,
+.MuiGrid-item {
+  margin-left: 0 !important;
+  padding-left: 0 !important;
+  max-width: 100% !important;
+}
+
+/* Override any negative margins in the grid system */
+.MuiGrid-container {
+  margin: 0 !important;
+  width: 100% !important;
+}
+
+.MuiGrid-item {
+  margin: 0 !important;
+}
+
+/* Fix for charts container position */
+.recharts-responsive-container {
+  left: 0 !important;
+}
+
+/* Dashboard specific fixes */
+.dashboard-main {
+  margin-left: 0 !important;
+  max-width: 100% !important;
+  width: 100% !important;
+  left: 0 !important;
+  position: relative !important;
+}
+
+/* Better dashboard layout adjustments */
+.MuiBox-root[component="main"] > .MuiBox-root {
+  padding: 0 !important;
+  margin: 0 auto !important;
+  width: 100% !important;
+  max-width: 1600px !important; /* Control max width for very large screens */
+}
+
+/* Dashboard container specific styling - proper padding on content */
+.dashboard-container {
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  grid-auto-rows: auto !important;
+  gap: 16px !important;
+  padding: 16px !important;
+  box-sizing: border-box !important;
+}
+
+/* Title font styling */
+.dashboard-container h4 {
+  font-size: 24px !important;
+  font-weight: 600 !important;
+  color: #217346 !important;
+  margin-bottom: 16px !important;
+}
+
+/* Override box styling to match dev portal */
+.dashboard-container > .MuiBox-root {
+  background-color: rgba(240, 248, 243, 0.8) !important;
+  border-radius: 8px !important;
+  border: 1px solid rgba(33, 115, 70, 0.1) !important;
+  padding: 16px !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
+}
+
+/* Ensure consistent spacing in dashboard sections */
+.dashboard-container .MuiTypography-h6 {
+  margin: 0 0 16px 0 !important;
+  padding: 0 !important;
+  line-height: 1.4 !important;
+}
+
+/* Dashboard grid cards need better vertical spacing */
+.MuiGrid-container {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* Adjust card padding for better proportions */
+.MuiCard-root {
+  padding-top: 8px !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.MuiCardContent-root {
+  flex-grow: 1 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: space-between !important;
+}
+
+/* Grid improvements for dashboard */
+.MuiGrid-container {
+  width: 100% !important;
+  margin: 0 auto !important;
+  padding: 0 !important;
+}
+
+/* Ensure grid items have proper padding */
+.MuiGrid-item {
+  padding: 12px !important;
+}
+
+/* Override aggressive fixes that might be causing issues */
+.MuiBox-root[component="main"],
+.MuiBox-root[component="main"] > .MuiBox-root,
+.MuiBox-root[component="main"] > .MuiBox-root > .MuiGrid-container {
+  margin-left: auto !important;
+  margin-right: auto !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
+/* Better chart title spacing */
+.MuiPaper-root h6 {
+  margin-bottom: 16px !important;
+  padding-top: 4px !important;
+}
+
+/* Better card visual balance */
+.MuiCard-root {
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.MuiCardContent-root {
+  flex-grow: 1 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: space-between !important;
+}
+
+/* Fix sidebar overlap issue */
+@media (min-width: 600px) {
+  /* Main content wrapper - ensure it respects the sidebar width */
+  .MuiDrawer-root + .MuiBox-root,
+  .MuiBox-root > .dashboard-container,
+  .MuiDrawer-paper ~ .MuiBox-root {
+    margin-left: 280px !important;
+    width: calc(100% - 280px) !important;
+  }
+  
+  /* Adjust dashboard container positioning */
+  .dashboard-container {
+    padding-left: 16px !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+  }
+  
+  /* Target specific dashboard container class */
+  .dashboard-container.css-1i11kh4,
+  .dashboard-container.MuiBox-root {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    max-width: calc(100%) !important;
+    width: calc(100%) !important;
+  }
+  
+  /* Fix for all MuiBox-root elements in dashboard */
+  div[class*='MuiBox-root'] {
+    margin-left: 0 !important;
+  }
+}
+
+/* Fix margin for component boxes */
+.dashboard-container > div {
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+/* Fix specific DOM elements by class */
+.MuiBox-root.css-b8wktp,
+.MuiBox-root.css-1x5l9a8,
+.MuiBox-root.css-xfz3o2,
+.MuiBox-root.css-c4v429 {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+.MuiBox-root.css-ghgb5x,
+.dashboard-container.css-ghgb5x {
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  padding: 16px !important;
+}
+
+/* Fix chart container width */
+.MuiBox-root.css-fx9f2w,
+.MuiBox-root.css-1w3svwy,
+.MuiBox-root.css-jos5ut {
+  width: 100% !important;
+  display: grid !important;
+  max-width: 100% !important;
+}
+
+/* Add an initial state to prevent flash of white screen */
+body {
+  background-color: #217346 !important;
+}
+
+/* Ensure electron mode has correct root styles */
+body.electron-mode {
+  overflow: hidden !important;
+  background-color: #217346 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+}
+
+/* Fix root container in Electron */
+body.electron-mode #root {
+  width: 100vw !important;
+  height: 100vh !important;
+  overflow: hidden !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+/* Fix container margins and padding in all modes */
+#root {
+  max-width: 100% !important;
+  width: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+} 
