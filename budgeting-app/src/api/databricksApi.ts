@@ -6,149 +6,120 @@ import {
   FinancialTransaction 
 } from '../types/data';
 
-interface DatabricksQueryOptions {
+export interface DatabricksQueryOptions {
   catalog?: string;
   schema?: string;
+  warehouse_id?: string;
+  parameters?: Record<string, any>;
+  timeout?: number;
 }
 
-class DatabricksApi {
+export class DatabricksApi {
   private baseUrl: string;
   private token: string;
+  private defaultOptions: DatabricksQueryOptions;
 
-  constructor(baseUrl: string, token: string) {
+  constructor(baseUrl: string, token: string, defaultOptions: DatabricksQueryOptions = {}) {
     this.baseUrl = baseUrl;
     this.token = token;
+    this.defaultOptions = defaultOptions;
   }
 
-  private async get<T>(url: string, config?: AxiosRequestConfig): Promise<T> {
-    const response = await axios.get<T>(`${this.baseUrl}${url}`, {
-      ...config,
+  private async executeQuery<T>(statement: string, options: DatabricksQueryOptions = {}): Promise<T[]> {
+    const response = await axios.post(`${this.baseUrl}/api/2.0/sql/statements`, {
+      statement,
+      warehouse_id: options.warehouse_id || this.defaultOptions.warehouse_id,
+      catalog: options.catalog || this.defaultOptions.catalog,
+      schema: options.schema || this.defaultOptions.schema,
+      parameters: options.parameters || {},
+      wait_timeout: options.timeout || 60,
+      byte_limit: 1024 * 1024 * 10, // 10MB limit
+    }, {
       headers: {
-        ...config?.headers,
-        Authorization: `Bearer ${this.token}`
+        Authorization: `Bearer ${this.token}`,
+        'Content-Type': 'application/json'
       }
     });
-    return response.data;
-  }
 
-  // @ts-ignore - Will be used in future implementations
-  private async post<T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
-    const response = await axios.post<T>(`${this.baseUrl}${url}`, data, {
-      ...config,
-      headers: {
-        ...config?.headers,
-        Authorization: `Bearer ${this.token}`
-      }
-    });
-    return response.data;
-  }
+    if (response.data.status === 'error') {
+      throw new Error(`Databricks query error: ${response.data.error}`);
+    }
 
-  // @ts-ignore - Will be used in future implementations
-  private async put<T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
-    const response = await axios.put<T>(`${this.baseUrl}${url}`, data, {
-      ...config,
-      headers: {
-        ...config?.headers,
-        Authorization: `Bearer ${this.token}`
-      }
-    });
-    return response.data;
+    return response.data.results;
   }
 
   // Projects
   async getProjects(options?: DatabricksQueryOptions): Promise<Project[]> {
-    const response = await this.get<any[]>('/sql/statements', {
-      params: {
-        catalog: options?.catalog,
-        schema: options?.schema,
-        statement: 'SELECT * FROM projects'
-      }
-    });
-    return response.map(item => ({
-      id: item.id,
-      projectCode: item.project_code,
-      projectName: item.project_name,
-      description: item.description,
-      startDate: item.start_date,
-      endDate: item.end_date,
-      budget: item.budget,
-      status: item.status,
-      managerId: item.manager_id,
-      departmentId: item.department_id,
-      createdAt: item.created_at,
-      updatedAt: item.updated_at
-    }));
+    const query = `
+      SELECT 
+        id,
+        project_code as projectCode,
+        project_name as projectName,
+        description,
+        start_date as startDate,
+        end_date as endDate,
+        budget,
+        status,
+        manager_id as managerId,
+        department_id as departmentId,
+        created_at as createdAt,
+        updated_at as updatedAt
+      FROM projects
+    `;
+    
+    return this.executeQuery<Project>(query, options);
   }
 
   // GL Accounts
   async getGLAccounts(options?: DatabricksQueryOptions): Promise<GLAccount[]> {
-    const response = await this.get<any[]>('/sql/statements', {
-      params: {
-        catalog: options?.catalog,
-        schema: options?.schema,
-        statement: 'SELECT * FROM gl_accounts'
-      }
-    });
-    return response.map(item => ({
-      id: item.id,
-      accountNumber: item.account_number,
-      accountName: item.account_name,
-      accountType: item.account_type,
-      isActive: item.is_active,
-      departmentId: item.department_id,
-      createdAt: item.created_at,
-      updatedAt: item.updated_at
-    }));
+    const query = `
+      SELECT 
+        id,
+        account_number as accountNumber,
+        account_name as accountName,
+        account_type as accountType,
+        is_active as isActive,
+        valid_from as validFrom,
+        valid_to as validTo,
+        is_current as isCurrent,
+        created_at as createdAt,
+        updated_at as updatedAt
+      FROM gl_accounts
+    `;
+    
+    return this.executeQuery<GLAccount>(query, options);
   }
 
-  // Expenses
-  async getExpenses(options?: DatabricksQueryOptions): Promise<FinancialTransaction[]> {
-    const response = await this.get<any[]>('/sql/statements', {
-      params: {
-        catalog: options?.catalog,
-        schema: options?.schema,
-        statement: 'SELECT * FROM expenses'
-      }
-    });
-    return response.map(item => ({
-      id: item.id,
-      transactionDate: item.transaction_date,
-      glAccountId: item.gl_account_id,
-      projectId: item.project_id,
-      amount: item.amount,
-      description: item.description,
-      reference: item.reference,
-      vendorId: item.vendor_id,
-      userId: item.user_id,
-      dateId: item.date_id,
-      createdAt: item.created_at,
-      updatedAt: item.updated_at
-    }));
+  // Transactions
+  async getTransactions(options?: DatabricksQueryOptions): Promise<FinancialTransaction[]> {
+    const query = `
+      SELECT 
+        t.id,
+        t.date,
+        t.amount,
+        t.description,
+        t.reference,
+        t.gl_account_id as glAccountId,
+        t.project_id as projectId,
+        t.vendor_id as vendorId,
+        t.user_id as userId,
+        t.created_at as createdAt,
+        t.updated_at as updatedAt,
+        -- Join related data if needed
+        g.account_name as glAccountName,
+        p.project_name as projectName,
+        v.vendor_name as vendorName
+      FROM transactions t
+      LEFT JOIN gl_accounts g ON t.gl_account_id = g.id
+      LEFT JOIN projects p ON t.project_id = p.id
+      LEFT JOIN vendors v ON t.vendor_id = v.id
+    `;
+    
+    return this.executeQuery<FinancialTransaction>(query, options);
   }
 
-  // Vendors
-  async getVendors(options?: DatabricksQueryOptions): Promise<Vendor[]> {
-    const response = await this.get<any[]>('/sql/statements', {
-      params: {
-        catalog: options?.catalog,
-        schema: options?.schema,
-        statement: 'SELECT * FROM vendors'
-      }
-    });
-    return response.map(item => ({
-      id: item.id,
-      vendorName: item.vendor_name,
-      vendorCode: item.vendor_code,
-      contactName: item.contact_name,
-      contactEmail: item.contact_email,
-      contactPhone: item.contact_phone,
-      category: item.category,
-      performanceScore: item.performance_score,
-      isActive: item.is_active,
-      createdAt: item.created_at,
-      updatedAt: item.updated_at
-    }));
+  // Custom Query Execution
+  async executeCustomQuery<T>(query: string, options?: DatabricksQueryOptions): Promise<T[]> {
+    return this.executeQuery<T>(query, options);
   }
-}
-
-export default DatabricksApi; 
+} 
