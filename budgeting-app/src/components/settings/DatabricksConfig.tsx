@@ -9,7 +9,9 @@ import {
   CircularProgress,
   Snackbar,
   alpha,
-  useTheme
+  useTheme,
+  FormControlLabel,
+  Switch
 } from '@mui/material';
 import { useData } from '../../context/DataContext';
 
@@ -22,7 +24,12 @@ export const DatabricksConfig: React.FC = () => {
   const [formData, setFormData] = useState({
     workspaceUrl: databricksConfig?.workspaceUrl || '',
     catalogName: databricksConfig?.catalogName || '',
-    schema: databricksConfig?.schema || 'default'
+    schema: databricksConfig?.schema || 'default',
+    warehouseId: databricksConfig?.warehouseId || '',
+    computeHost: databricksConfig?.computeHost || '',
+    httpPath: databricksConfig?.httpPath || '',
+    port: databricksConfig?.port || 443,
+    useSSL: databricksConfig?.useSSL ?? true
   });
 
   useEffect(() => {
@@ -30,7 +37,12 @@ export const DatabricksConfig: React.FC = () => {
       setFormData({
         workspaceUrl: databricksConfig.workspaceUrl,
         catalogName: databricksConfig.catalogName,
-        schema: databricksConfig.schema || 'default'
+        schema: databricksConfig.schema || 'default',
+        warehouseId: databricksConfig.warehouseId || '',
+        computeHost: databricksConfig.computeHost || '',
+        httpPath: databricksConfig.httpPath || '',
+        port: databricksConfig.port || 443,
+        useSSL: databricksConfig.useSSL ?? true
       });
     }
   }, [databricksConfig]);
@@ -112,6 +124,58 @@ export const DatabricksConfig: React.FC = () => {
             fullWidth
             placeholder="default"
             helperText="Enter your schema name (optional)"
+          />
+          
+          <TextField
+            label="Warehouse ID"
+            name="warehouseId"
+            value={formData.warehouseId}
+            onChange={handleChange}
+            fullWidth
+            placeholder="xxxxxxxxxxxxxxxx"
+            helperText="Enter your SQL warehouse ID (optional)"
+          />
+
+          <TextField
+            label="Compute Host"
+            name="computeHost"
+            value={formData.computeHost}
+            onChange={handleChange}
+            fullWidth
+            placeholder="adb-xxx.azuredatabricks.net"
+            helperText="Enter your Databricks compute host (optional)"
+          />
+
+          <TextField
+            label="HTTP Path"
+            name="httpPath"
+            value={formData.httpPath}
+            onChange={handleChange}
+            fullWidth
+            placeholder="/sql/1.0/warehouses/xxx"
+            helperText="Enter your SQL warehouse HTTP path (optional)"
+          />
+
+          <TextField
+            label="Port"
+            name="port"
+            type="number"
+            value={formData.port}
+            onChange={handleChange}
+            fullWidth
+            placeholder="443"
+            helperText="Enter the port number (default: 443)"
+          />
+
+          <FormControlLabel
+            control={
+              <Switch
+                checked={formData.useSSL}
+                onChange={(e) => setFormData(prev => ({ ...prev, useSSL: e.target.checked }))}
+                name="useSSL"
+              />
+            }
+            label="Use SSL"
           />
           
           <Button

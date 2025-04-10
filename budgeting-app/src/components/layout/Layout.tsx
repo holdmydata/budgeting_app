@@ -94,6 +94,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [showSplash, setShowSplash] = useState(false);
   const [electronDetected, setElectronDetected] = useState(false);
+  const [appReady, setAppReady] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   
@@ -105,11 +106,49 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     console.log("Electron detected:", isElectron);
     
     // Add electron-mode class to body when in Electron
-    if (isElectron) {
+    if (isElectron && window.electron) {
       document.body.classList.add('electron-mode');
       console.log("Added electron-mode class to body");
+      
+      // Set up app-ready listener
+      const electron = window.electron;
+      
+      // Send check-ready signal immediately
+      console.log("Sending check-ready signal");
+      electron.send('check-ready');
+      
+      electron.receive('app-ready', () => {
+        console.log("Received app-ready signal");
+        setAppReady(true);
+        setShowSplash(false);
+      });
+
+      // Set up error listener
+      electron.receive('app-error', (error) => {
+        console.error("Received app error:", error);
+        // Still set app as ready to show error state
+        setAppReady(true);
+        setShowSplash(false);
+      });
+
+      // Set up a periodic check for app readiness
+      const readinessCheck = setInterval(() => {
+        if (!appReady) {
+          console.log("Re-checking app readiness...");
+          electron.send('check-ready');
+        }
+      }, 1000);
+
+      return () => {
+        clearInterval(readinessCheck);
+        electron.removeAllListeners('app-ready');
+        electron.removeAllListeners('app-error');
+      };
     } else {
       document.body.classList.remove('electron-mode');
+      // In web mode, app is ready immediately
+      setAppReady(true);
+      setShowSplash(false);
     }
     
     // For debugging purposes, log window object properties
@@ -117,12 +156,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     if (isElectron && window.electron) {
       console.log("Electron API methods:", Object.keys(window.electron as object));
     }
-    
-    // Cleanup function to remove class when component unmounts
-    return () => {
-      document.body.classList.remove('electron-mode');
-    };
-  }, []);
+  }, [appReady]);
   
   // Use localStorage to track if the splash has been shown
   useEffect(() => {
@@ -469,14 +503,18 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     <>
       {showSplash && <SplashScreen onFinish={() => {
         console.log("Splash screen finished, hiding it now");
-        setTimeout(() => {
-          setShowSplash(false);
-          console.log("Splash screen hidden");
-        }, 100);
+        setShowSplash(false);
       }} />}
-      <Box sx={{ display: showSplash ? 'none' : 'block', width: '100%' }}>
+      
+      <Box sx={{ 
+        display: (!showSplash && appReady) ? 'block' : 'none', 
+        width: '100%',
+        height: '100%',
+        opacity: (!showSplash && appReady) ? 1 : 0,
+        transition: 'opacity 0.3s ease-in-out',
+        position: 'relative'
+      }}>
         <LayoutRoot>
-          {/* Add TitleBar for Electron mode with error handling */}
           {electronDetected && <TitleBar />}
           <Header 
             drawerWidth={drawerWidth} 
@@ -580,6 +618,28 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
           <Footer />
         </LayoutRoot>
       </Box>
+
+      {/* Debug overlay */}
+      {process.env.NODE_ENV === 'development' && (
+        <Box
+          sx={{
+            position: 'fixed',
+            bottom: 16,
+            right: 16,
+            padding: 2,
+            backgroundColor: 'rgba(0,0,0,0.8)',
+            color: 'white',
+            borderRadius: 1,
+            zIndex: 9999,
+            fontSize: '12px',
+            fontFamily: 'monospace',
+          }}
+        >
+          <div>Electron: {electronDetected ? 'Yes' : 'No'}</div>
+          <div>App Ready: {appReady ? 'Yes' : 'No'}</div>
+          <div>Show Splash: {showSplash ? 'Yes' : 'No'}</div>
+        </Box>
+      )}
     </>
   );
 }; 

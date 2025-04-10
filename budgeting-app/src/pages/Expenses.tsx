@@ -37,97 +37,100 @@ import { FinancialTransaction } from '../types/data';
 const mockTransactions: FinancialTransaction[] = [
   {
     id: '1',
-    transactionDate: '2023-03-15T00:00:00Z',
-    glAccountId: '1',
-    projectId: '2',
+    date: '2023-03-15T00:00:00Z',
+    glAccount: '1',
+    project: '2',
     amount: 2999.99,
     description: 'Software licenses renewal',
-    reference: 'INV-5678',
-    vendorId: '1',
+    voucherNumber: 'INV-5678',
+    vendor: '1',
     userId: 'user-1',
-    dateId: 'date-1',
+    status: 'Approved',
     createdAt: '2023-03-15T10:30:00Z',
     updatedAt: '2023-03-15T10:30:00Z'
   },
   {
     id: '2',
-    transactionDate: '2023-03-10T00:00:00Z',
-    glAccountId: '2',
-    projectId: '1',
+    date: '2023-03-10T00:00:00Z',
+    glAccount: '2',
+    project: '1',
     amount: 1499.95,
     description: 'New laptops purchase',
-    reference: 'PO-1234',
-    vendorId: '3',
+    voucherNumber: 'PO-1234',
+    vendor: '3',
     userId: 'user-2',
-    dateId: 'date-2',
+    status: 'Processed',
     createdAt: '2023-03-10T14:20:00Z',
     updatedAt: '2023-03-10T14:20:00Z'
   },
   {
     id: '3',
-    transactionDate: '2023-03-05T00:00:00Z',
-    glAccountId: '3',
+    date: '2023-03-05T00:00:00Z',
+    glAccount: '3',
+    project: '1',
     amount: 399.00,
     description: 'Cloud storage subscription',
-    reference: 'SUB-9876',
-    vendorId: '2',
+    voucherNumber: 'SUB-9876',
+    vendor: '2',
     userId: 'user-1',
-    dateId: 'date-3',
+    status: 'Approved',
     createdAt: '2023-03-05T09:15:00Z',
     updatedAt: '2023-03-05T09:15:00Z'
   },
   {
     id: '4',
-    transactionDate: '2023-03-01T00:00:00Z',
-    glAccountId: '4',
-    projectId: '3',
+    date: '2023-03-01T00:00:00Z',
+    glAccount: '4',
+    project: '3',
     amount: 5000.00,
     description: 'IT Consulting services',
-    reference: 'INV-4321',
-    vendorId: '4',
+    voucherNumber: 'INV-4321',
+    vendor: '4',
     userId: 'user-3',
-    dateId: 'date-4',
+    status: 'Pending',
     createdAt: '2023-03-01T11:45:00Z',
     updatedAt: '2023-03-01T11:45:00Z'
   },
   {
     id: '5',
-    transactionDate: '2023-02-28T00:00:00Z',
-    glAccountId: '5',
+    date: '2023-02-28T00:00:00Z',
+    glAccount: '5',
+    project: '2',
     amount: 1200.00,
     description: 'Staff training program',
-    reference: 'INV-8765',
-    vendorId: '5',
+    voucherNumber: 'INV-8765',
+    vendor: '5',
     userId: 'user-2',
-    dateId: 'date-5',
+    status: 'Approved',
     createdAt: '2023-02-28T16:30:00Z',
     updatedAt: '2023-02-28T16:30:00Z'
   },
   {
     id: '6',
-    transactionDate: '2023-02-20T00:00:00Z',
-    glAccountId: '6',
-    projectId: '2',
+    date: '2023-02-20T00:00:00Z',
+    glAccount: '6',
+    
+    project: '2',
     amount: 850.50,
     description: 'Network maintenance',
-    reference: 'SVC-2468',
-    vendorId: '5',
+    voucherNumber: 'SVC-2468',
+    vendor: '5',
     userId: 'user-1',
-    dateId: 'date-6',
+    status: 'Processed',
     createdAt: '2023-02-20T13:10:00Z',
     updatedAt: '2023-02-20T13:10:00Z'
   },
   {
     id: '7',
-    transactionDate: '2023-02-15T00:00:00Z',
-    glAccountId: '7',
-    projectId: '1',
+    date: '2023-02-15T00:00:00Z',
+    glAccount: '7',
+    project: '1',
     amount: 3499.99,
     description: 'Server hardware upgrade',
-    reference: 'PO-3579',
-    vendorId: '3',
+    voucherNumber: 'PO-3579',
+    vendor: '3',
     userId: 'user-3',
-    dateId: 'date-7',
+    status: 'Pending',
     createdAt: '2023-02-15T10:45:00Z',
     updatedAt: '2023-02-15T10:45:00Z'
   }
@@ -170,7 +173,7 @@ interface Column {
 
 const columns: Column[] = [
   { 
-    id: 'transactionDate', 
+    id: 'date', 
     label: 'Date', 
     minWidth: 120,
     format: (value: string) => new Date(value).toLocaleDateString()
@@ -179,13 +182,13 @@ const columns: Column[] = [
     id: 'glAccountName', 
     label: 'GL Account',
     minWidth: 180,
-    format: (_: string, row: FinancialTransaction) => mockGLAccounts[row.glAccountId as keyof typeof mockGLAccounts] || '-'
+    format: (_: string, row: FinancialTransaction) => mockGLAccounts[row.glAccount as keyof typeof mockGLAccounts] || '-'
   },
   { 
     id: 'projectName', 
     label: 'Project',
     minWidth: 160,
-    format: (_: string, row: FinancialTransaction) => row.projectId ? mockProjects[row.projectId as keyof typeof mockProjects] || '-' : '-'
+    format: (_: string, row: FinancialTransaction) => row.project ? mockProjects[row.project as keyof typeof mockProjects] || '-' : '-'
   },
   { 
     id: 'description', 
@@ -200,7 +203,7 @@ const columns: Column[] = [
     format: (value: number) => value.toLocaleString('en-US', { style: 'currency', currency: 'USD' })
   },
   { 
-    id: 'reference', 
+    id: 'voucherNumber', 
     label: 'Reference', 
     minWidth: 120 
   },
@@ -208,7 +211,7 @@ const columns: Column[] = [
     id: 'vendorName', 
     label: 'Vendor',
     minWidth: 180,
-    format: (_: string, row: FinancialTransaction) => row.vendorId ? mockVendors[row.vendorId as keyof typeof mockVendors] || '-' : '-'
+    format: (_: string, row: FinancialTransaction) => row.vendor ? mockVendors[row.vendor as keyof typeof mockVendors] || '-' : '-'
   }
 ];
 
@@ -234,7 +237,7 @@ export const ExpensesPage: React.FC = () => {
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [searchQuery, setSearchQuery] = useState('');
   const [order, setOrder] = useState<Order>('desc');
-  const [orderBy, setOrderBy] = useState<keyof FinancialTransaction>('transactionDate');
+  const [orderBy, setOrderBy] = useState<keyof FinancialTransaction>('date');
   const [dateFilter, setDateFilter] = useState('all');
 
   useEffect(() => {
@@ -279,7 +282,7 @@ export const ExpensesPage: React.FC = () => {
     const startOfQuarter = new Date(now.getFullYear(), Math.floor(now.getMonth() / 3) * 3 - 3, 1);
     
     return data.filter(transaction => {
-      const transactionDate = new Date(transaction.transactionDate);
+      const transactionDate = new Date(transaction.date);
       
       switch (dateFilter) {
         case 'current-month':
@@ -299,19 +302,19 @@ export const ExpensesPage: React.FC = () => {
   // Filter transactions based on search query and date filter
   const filteredTransactions = getFilteredByDate(transactions).filter((transaction) => {
     const searchText = searchQuery.toLowerCase();
-    const glAccountName = mockGLAccounts[transaction.glAccountId as keyof typeof mockGLAccounts] || '';
-    const projectName = transaction.projectId 
-      ? mockProjects[transaction.projectId as keyof typeof mockProjects] || ''
+    const glAccountName = mockGLAccounts[transaction.glAccount as keyof typeof mockGLAccounts] || '';
+    const projectName = transaction.project 
+      ? mockProjects[transaction.project as keyof typeof mockProjects] || ''
       : '';
-    const vendorName = transaction.vendorId
-      ? mockVendors[transaction.vendorId as keyof typeof mockVendors] || ''
+    const vendorName = transaction.vendor
+      ? mockVendors[transaction.vendor as keyof typeof mockVendors] || ''
       : '';
       
     return (
       glAccountName.toLowerCase().includes(searchText) ||
       projectName.toLowerCase().includes(searchText) ||
       transaction.description.toLowerCase().includes(searchText) ||
-      transaction.reference.toLowerCase().includes(searchText) ||
+      transaction.voucherNumber.toLowerCase().includes(searchText) ||
       vendorName.toLowerCase().includes(searchText)
     );
   });
@@ -320,7 +323,7 @@ export const ExpensesPage: React.FC = () => {
   const sortedTransactions = [...filteredTransactions].sort((a, b) => {
     const isAsc = order === 'asc';
     
-    if (orderBy === 'transactionDate' || orderBy === 'createdAt' || orderBy === 'updatedAt') {
+    if (orderBy === 'date' || orderBy === 'createdAt' || orderBy === 'updatedAt') {
       return isAsc 
         ? new Date(a[orderBy]).getTime() - new Date(b[orderBy]).getTime()
         : new Date(b[orderBy]).getTime() - new Date(a[orderBy]).getTime();

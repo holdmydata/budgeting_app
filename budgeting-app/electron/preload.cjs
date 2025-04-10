@@ -9,7 +9,7 @@ contextBridge.exposeInMainWorld(
   {
     send: (channel, ...args) => {
       // whitelist channels
-      const validChannels = ['window-control'];
+      const validChannels = ['window-control', 'check-ready'];
       if (validChannels.includes(channel)) {
         console.log(`Sending message on channel: ${channel}`, args);
         ipcRenderer.send(channel, ...args);
@@ -18,7 +18,7 @@ contextBridge.exposeInMainWorld(
       }
     },
     receive: (channel, func) => {
-      const validChannels = ['window-state-change'];
+      const validChannels = ['window-state-change', 'app-ready', 'app-error'];
       if (validChannels.includes(channel)) {
         console.log(`Setting up receiver for channel: ${channel}`);
         // Deliberately strip event as it includes `sender` 
@@ -28,7 +28,7 @@ contextBridge.exposeInMainWorld(
       }
     },
     removeAllListeners: (channel) => {
-      const validChannels = ['window-state-change'];
+      const validChannels = ['window-state-change', 'app-ready', 'app-error'];
       if (validChannels.includes(channel)) {
         console.log(`Removing listeners for channel: ${channel}`);
         ipcRenderer.removeAllListeners(channel);

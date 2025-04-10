@@ -1,14 +1,29 @@
 // Data models based on Databricks tables
 
-// GL Account Dimension
+// GL Account Dimension with Type 2 SCD support
 export interface GLAccount {
-  id: string;
-  number: string;
-  name: string;
-  description: string;
-  budgetedAmount: number;
-  spentAmount: number;
-  availableAmount: number;
+  id: string;               // Surrogate key
+  accountNumber: string;    // Natural key (business key)
+  accountName: string;
+  accountType: string;
+  isActive: boolean;
+  validFrom: string;       // When this version became active
+  validTo: string | null;  // When this version became inactive (null if current)
+  isCurrent: boolean;      // Flag for current version
+  createdAt: string;
+  updatedAt: string;
+  // Optional fields for tracking changes
+  modifiedBy?: string;     // Who made the change
+  changeReason?: string;   // Why the change was made
+}
+
+// Helper type for GL Account changes
+export interface GLAccountChange {
+  accountNumber: string;
+  accountName?: string;
+  accountType?: string;
+  isActive?: boolean;
+  changeReason: string;
 }
 
 // Date Dimension
@@ -45,7 +60,8 @@ export interface User {
 // Project Dimension
 export interface Project {
   id: string;
-  name: string;
+  projectCode: string;
+  projectName: string;
   description: string;
   startDate: string;
   endDate: string;
@@ -54,6 +70,9 @@ export interface Project {
   status: 'Planned' | 'In Progress' | 'Completed' | 'On Hold' | 'Cancelled';
   owner: string;
   priority: 'Low' | 'Medium' | 'High' | 'Critical';
+  glAccount: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 // GL Project Mapping
@@ -79,6 +98,10 @@ export interface FinancialTransaction {
   glAccount: string;
   project: string;
   status: 'Pending' | 'Approved' | 'Processed' | 'Rejected';
+  voucherNumber: string;
+  userId: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 // Budget Planning

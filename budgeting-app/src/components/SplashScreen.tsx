@@ -45,55 +45,100 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
   const [showText, setShowText] = useState(false);
   const [showSubText, setShowSubText] = useState(false);
   const [fadingOut, setFadingOut] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   
-  // Force completion after a timeout - safety mechanism
+  // Check if we're running in Electron
+  const isElectron = window.electron !== undefined;
+  
   useEffect(() => {
-    // Create a forced completion timer
-    const forceCompleteTimer = setTimeout(() => {
-      console.log("Force completing splash screen");
-      onFinish();
-    }, 5000); // Force complete after 5 seconds
+    console.log("SplashScreen mounted", {
+      isElectron,
+      environment: process.env.NODE_ENV,
+      electronAPI: isElectron ? Object.keys(window.electron || {}) : 'Not available'
+    });
 
-    return () => {
-      clearTimeout(forceCompleteTimer);
-    };
-  }, [onFinish]);
+    try {
+      // For Electron, check if the main process is ready
+      if (isElectron && window.electron) {
+        window.electron.send('check-ready');
+        
+        // Listen for ready status from main process
+        window.electron.receive('app-ready', () => {
+          console.log("Received app-ready signal from main process");
+          startAnimationSequence();
+        });
 
-  useEffect(() => {
-    console.log("SplashScreen mounted");
+        // Listen for any errors from main process
+        window.electron.receive('app-error', (errorMsg: string) => {
+          console.error("Received error from main process:", errorMsg);
+          setError(errorMsg);
+          // Still finish after a delay even if there's an error
+          setTimeout(onFinish, 3000);
+        });
+
+        return () => {
+          if (window.electron) {
+            window.electron.removeAllListeners('app-ready');
+            window.electron.removeAllListeners('app-error');
+          }
+        };
+      } else {
+        // For web, just start the animation sequence
+        startAnimationSequence();
+      }
+    } catch (err) {
+      console.error("Error in SplashScreen initialization:", err);
+      setError(err instanceof Error ? err.message : 'Unknown error occurred');
+      // Still finish after a delay even if there's an error
+      setTimeout(onFinish, 3000);
+    }
+  }, [isElectron, onFinish]);
+
+  const startAnimationSequence = () => {
+    console.log("Starting animation sequence");
     
-    // Show main text after logo appears
-    const textTimer = setTimeout(() => {
-      console.log("Showing main text");
-      setShowText(true);
-    }, 600);
+    const timers: NodeJS.Timeout[] = [];
 
-    // Show subtext after main text
-    const subTextTimer = setTimeout(() => {
-      console.log("Showing subtext");
-      setShowSubText(true);
-    }, 1000);
+    try {
+      // Show main text after logo appears
+      timers.push(setTimeout(() => {
+        console.log("Showing main text");
+        setShowText(true);
+      }, 600));
 
-    // Start fade out animation
-    const fadeOutTimer = setTimeout(() => {
-      console.log("Starting fade out");
-      setFadingOut(true);
-    }, 2000);
+      // Show subtext after main text
+      timers.push(setTimeout(() => {
+        console.log("Showing subtext");
+        setShowSubText(true);
+      }, 1000));
 
-    // Hide splash screen after animation
-    const finishTimer = setTimeout(() => {
-      console.log("Finishing splash screen");
+      // Start fade out animation
+      timers.push(setTimeout(() => {
+        console.log("Starting fade out");
+        setFadingOut(true);
+      }, 2000));
+
+      // Hide splash screen after animation
+      timers.push(setTimeout(() => {
+        console.log("Finishing splash screen");
+        onFinish();
+      }, 2500));
+
+      // Force completion after timeout (safety mechanism)
+      timers.push(setTimeout(() => {
+        console.log("Force completing splash screen (safety timeout)");
+        onFinish();
+      }, 5000));
+    } catch (err) {
+      console.error("Error in animation sequence:", err);
+      // Clean up timers
+      timers.forEach(timer => clearTimeout(timer));
+      // Force finish
       onFinish();
-    }, 2500);
+    }
 
-    return () => {
-      console.log("SplashScreen unmounted, clearing timers");
-      clearTimeout(textTimer);
-      clearTimeout(subTextTimer);
-      clearTimeout(fadeOutTimer);
-      clearTimeout(finishTimer);
-    };
-  }, [onFinish]);
+    return () => timers.forEach(timer => clearTimeout(timer));
+  };
 
   return (
     <Box
@@ -113,7 +158,7 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
                     radial-gradient(circle at 85% 15%, #1A5D38 0%, #217346 55%)`,
       }}
     >
-      <Grow in={true} timeout={600}>
+      <Grow in={!error} timeout={600}>
         <Box
           sx={{
             width: 100,
@@ -145,7 +190,7 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
             textAlign: 'center',
           }}
         >
-          Hold My Budget
+          {error ? 'Loading Error' : 'Hold My Budget'}
         </Typography>
       </Fade>
       <Fade in={showSubText} timeout={600}>
@@ -161,7 +206,7 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
             opacity: 0.8,
           }}
         >
-          Your Financial Companion
+          {error ? error : 'Your Financial Companion'}
         </Typography>
       </Fade>
     </Box>

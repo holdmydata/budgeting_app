@@ -2,13 +2,11 @@
  * Databricks SQL Connection
  * 
  * This module handles direct connections to Databricks SQL 
- * using the Databricks SDK for JavaScript.
- * 
- * In a production environment, this would be replaced with
- * secure Azure Function endpoints that connect to Databricks.
+ * using the Databricks REST API.
  */
 
 import { GLAccount, Project, FinancialTransaction } from '../types/data';
+import axios from 'axios';
 
 // In a real implementation, we would use the Databricks JavaScript SDK
 // or access the Databricks SQL REST API via Azure Functions
@@ -22,14 +20,30 @@ export interface DatabricksQueryOptions {
 
 export interface DatabricksConfig {
   token: string;
-  host: string;
-  defaultCatalog?: string;
-  defaultSchema?: string;
+  workspaceUrl: string;
+  computeHost?: string;
+  httpPath?: string;
+  warehouseId?: string;
+  catalog?: string;
+  schema?: string;
+  port?: number;
+  useSSL?: boolean;
 }
 
 export class DatabricksConnector {
-  constructor() {
-    // Mock implementation - no config needed
+  private config: DatabricksConfig | null = null;
+  private useMockData = true; // Set this to false to use real Databricks connection
+
+  constructor(config?: DatabricksConfig) {
+    if (config) {
+      this.config = config;
+      this.useMockData = false;
+    }
+  }
+
+  setConfig(config: DatabricksConfig) {
+    this.config = config;
+    this.useMockData = false;
   }
 
   /**
@@ -40,15 +54,55 @@ export class DatabricksConnector {
    * @returns Query results
    */
   async executeQuery(sql: string, options: DatabricksQueryOptions = {}): Promise<any[]> {
-    // In a real implementation, this would use the Databricks SDK
-    // or make HTTP requests to the Databricks SQL REST API
-    
-    console.log(`Executing query against Databricks SQL: ${sql}`);
-    console.log(`Options: ${JSON.stringify(options)}`);
-    
-    // This is a mock implementation
-    // In a real app, this would send the query to Databricks SQL
-    return this.mockDatabricksResponse(sql);
+    if (this.useMockData) {
+      console.log('Using mock data instead of real Databricks connection');
+      return this.mockDatabricksResponse(sql);
+    }
+
+    if (!this.config) {
+      throw new Error('Databricks configuration not set');
+    }
+
+    try {
+      const endpoint = `${this.config.workspaceUrl}/api/2.0/sql/statements`;
+      
+      const response = await axios.post(endpoint, {
+        catalog: options.catalog || this.config.catalog,
+        schema: options.schema || this.config.schema || 'default',
+        warehouse_id: this.config.warehouseId,
+        statement: sql,
+        parameters: options.parameters || {},
+        wait_timeout: options.timeout || 60,
+        byte_limit: 1024 * 1024 * 10, // 10MB limit
+      }, {
+        headers: {
+          'Authorization': `Bearer ${this.config.token}`,
+          'Content-Type': 'application/json',
+        }
+      });
+
+      if (response.data.status === 'error') {
+        throw new Error(`Databricks query error: ${response.data.error}`);
+      }
+
+      return Array.isArray(response.data.results) ? response.data.results : [response.data];
+    } catch (error) {
+      console.error('Databricks query failed:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Test the Databricks connection
+   */
+  async testConnection(): Promise<boolean> {
+    try {
+      await this.executeQuery('SELECT 1');
+      return true;
+    } catch (error) {
+      console.error('Databricks connection test failed:', error);
+      return false;
+    }
   }
 
   /**

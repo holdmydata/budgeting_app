@@ -49,9 +49,11 @@ const mockProjectData: Project[] = [
     startDate: "2023-01-01",
     endDate: "2023-12-31",
     budget: 300000,
-    status: "active",
-    managerId: "1",
-    departmentId: "1",
+    spent: 0,
+    status: "Planned",
+    owner: "1",
+    priority: "Medium",
+    glAccount: "1",
     createdAt: "2023-01-01",
     updatedAt: "2023-01-01"
   },
@@ -63,9 +65,11 @@ const mockProjectData: Project[] = [
     startDate: "2023-07-01",
     endDate: "2023-09-30",
     budget: 150000,
-    status: "active",
-    managerId: "2",
-    departmentId: "2",
+    spent: 0,
+    status: "Planned",
+    owner: "2",
+    priority: "Medium",
+    glAccount: "2",
     createdAt: "2023-01-01",
     updatedAt: "2023-01-01"
   }
@@ -73,9 +77,15 @@ const mockProjectData: Project[] = [
 
 // Mock manager data
 const mockManagers = {
-  '1': 'John Smith',
-  '2': 'Sarah Johnson',
-  '3': 'Michael Brown'
+  '1': 'Brad',
+  '2': 'Kevin',
+  '3': 'Drew',
+  '4': 'Ana',
+  '5': 'Mike',
+  '6': 'Scott',
+  '7': 'Jim',
+  '8': 'Jill',
+  '9': 'Jack',
 };
 
 // Format currency helper
@@ -107,27 +117,27 @@ const columns: Column[] = [
       let color, icon, label;
       
       switch(value) {
-        case 'active':
+        case 'Planned':
           color = 'success';
           icon = <PlayCircleIcon fontSize="small" />;
           label = 'Active';
           break;
-        case 'planned':
+        case 'In Progress':
           color = 'info';
           icon = <CheckCircleIcon fontSize="small" />;
           label = 'Planned';
           break;
-        case 'completed':
+        case 'Completed':
           color = 'default';
           icon = <CheckCircleIcon fontSize="small" />;
           label = 'Completed';
           break;
-        case 'onHold':
+        case 'On Hold':
           color = 'warning';
           icon = <PauseCircleIcon fontSize="small" />;
           label = 'On Hold';
           break;
-        case 'cancelled':
+        case 'Cancelled':
           color = 'error';
           icon = <CancelIcon fontSize="small" />;
           label = 'Cancelled';
@@ -185,7 +195,7 @@ const columns: Column[] = [
     minWidth: 180,
     format: (_: any, row?: Project) => {
       if (!row) return '-';
-      return mockManagers[row.managerId as keyof typeof mockManagers] || '-';
+      return mockManagers[row.owner as keyof typeof mockManagers] || '-';
     }
   }
 ];
@@ -196,11 +206,11 @@ type Order = 'asc' | 'desc';
 // Status filter options
 const statusFilters = [
   { value: 'all', label: 'All Statuses' },
-  { value: 'active', label: 'Active' },
-  { value: 'planned', label: 'Planned' },
-  { value: 'completed', label: 'Completed' },
-  { value: 'onHold', label: 'On Hold' },
-  { value: 'cancelled', label: 'Cancelled' }
+  { value: 'Planned', label: 'Planned' },
+  { value: 'In Progress', label: 'In Progress' },
+  { value: 'Completed', label: 'Completed' },
+  { value: 'On Hold', label: 'On Hold' },
+  { value: 'Cancelled', label: 'Cancelled' }
 ];
 
 const ProjectsPage: React.FC = () => {
@@ -215,8 +225,8 @@ const ProjectsPage: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState('all');
 
   // Project statistics
-  const activeProjects = mockProjectData.filter(p => p.status === 'active').length;
-  const completedProjects = mockProjectData.filter(p => p.status === 'completed').length;
+  const activeProjects = mockProjectData.filter(p => p.status === 'Planned').length;
+  const completedProjects = mockProjectData.filter(p => p.status === 'Completed').length;
   const totalBudget = mockProjectData.reduce((sum, project) => sum + project.budget, 0);
   const usedBudget = mockProjectData.reduce((sum, project) => {
     const usage = 0.75; // Mock usage as 75% of budget
