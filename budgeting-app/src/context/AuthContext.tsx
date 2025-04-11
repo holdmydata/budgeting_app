@@ -4,7 +4,7 @@ import * as microsoftTeams from '@microsoft/teams-js';
 import { useNavigate } from 'react-router-dom';
 
 // Always skip auth for now to troubleshoot UI issues
-const skipAuth = true; // Force skip auth until we resolve UI issues
+const skipAuth = false; // Enabling auth to get data access
 
 // MSAL configuration for Azure AD
 const msalConfig = {
@@ -13,30 +13,28 @@ const msalConfig = {
     authority: `https://login.microsoftonline.com/${import.meta.env.VITE_AZURE_TENANT_ID || 'common'}`,
     redirectUri: window.location.origin,
     postLogoutRedirectUri: window.location.origin,
+    navigateToLoginRequestUrl: true
   },
   cache: {
     cacheLocation: 'sessionStorage',
     storeAuthStateInCookie: true,
-  },
+  }
 };
 
 // Required scopes for the application
 const loginRequest = {
   scopes: [
     'User.Read',
-    'https://analysis.windows.net/powerbi/api/Workspace.Read.All',
     'https://database.windows.net/sql/Data.Read',
-    'https://database.windows.net/sql/Data.Write'
+    'https://database.windows.net/sql/Data.Write',
+    'https://databricks.azure.com/user_impersonation'
   ]
 };
 
-// Additional scopes for Databricks/Fabric
-const databricksRequest = {
-  scopes: [
-    ...loginRequest.scopes,
-    'https://databricks.azure.com/user_impersonation',
-    'https://databricks.azure.com/.default'
-  ]
+// Fabric/Databricks configuration
+const fabricConfig = {
+  catalog: import.meta.env.VITE_FABRIC_CATALOG || 'dev_scratchpad',
+  schema: import.meta.env.VITE_FABRIC_SCHEMA || 'budgeting-app'
 };
 
 interface AuthContextType {
@@ -67,6 +65,9 @@ export const AuthContext = createContext<AuthContextType>({
   getDatabricksToken: async () => null,
 });
 
+// Initialize MSAL instance outside of component
+const msalInstance = new PublicClientApplication(msalConfig);
+
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isInitializing, setIsInitializing] = useState(true);
@@ -74,8 +75,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [error, setError] = useState<Error | null>(null);
   const [inTeamsContext, setInTeamsContext] = useState(false);
   const navigate = useNavigate();
-
-  const msalInstance = new PublicClientApplication(msalConfig);
 
   useEffect(() => {
     const initializeAuth = async () => {
@@ -86,18 +85,37 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           return;
         }
 
-        // Check if we're in Teams
+        // Check for existing accounts
+        const accounts = msalInstance.getAllAccounts();
+        if (accounts.length > 0) {
+          setUser(accounts[0]);
+          setIsAuthenticated(true);
+          setIsInitializing(false);
+          return;
+        }
+
+        // Try silent token acquisition
         try {
-          await microsoftTeams.initialize();
-          setInTeamsContext(true);
-          await handleTeamsAuth();
-        } catch (teamsError) {
-          // Not in Teams context or Teams initialization failed
-          await handleRegularAuth();
+          const silentResult = await msalInstance.acquireTokenSilent({
+            ...loginRequest,
+            account: accounts[0]
+          });
+          setUser(silentResult.account);
+          setIsAuthenticated(true);
+        } catch (e) {
+          // Fall back to interactive method
+          try {
+            const loginResult = await msalInstance.loginPopup(loginRequest);
+            setUser(loginResult.account);
+            setIsAuthenticated(true);
+          } catch (popupError) {
+            console.error('Interactive login failed:', popupError);
+          }
         }
       } catch (error) {
         console.error('Auth initialization failed:', error);
         setError(error instanceof Error ? error : new Error('Unknown error'));
+      } finally {
         setIsInitializing(false);
       }
     };
@@ -105,53 +123,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     initializeAuth();
   }, []);
 
-  const handleTeamsAuth = async () => {
-    try {
-      const authTokenRequest = {
-        successCallback: (result: string) => {
-          console.log('Teams auth success:', result);
-          setIsAuthenticated(true);
-          setIsInitializing(false);
-        },
-        failureCallback: (error: string) => {
-          console.error('Teams auth failed:', error);
-          setError(new Error(error));
-          setIsInitializing(false);
-        },
-      };
-
-      await microsoftTeams.authentication.getAuthToken(authTokenRequest);
-    } catch (error) {
-      console.error('Teams auth error:', error);
-      setError(error instanceof Error ? error : new Error('Unknown error'));
-      setIsInitializing(false);
-    }
-  };
-
-  const handleRegularAuth = async () => {
-    try {
-      const accounts = msalInstance.getAllAccounts();
-      if (accounts.length > 0) {
-        setUser(accounts[0]);
-        setIsAuthenticated(true);
-      }
-      setIsInitializing(false);
-    } catch (error) {
-      console.error('Regular auth error:', error);
-      setError(error instanceof Error ? error : new Error('Unknown error'));
-      setIsInitializing(false);
-    }
-  };
-
   const login = async () => {
     try {
-      if (inTeamsContext) {
-        await handleTeamsAuth();
-      } else {
-        const result = await msalInstance.loginPopup(loginRequest);
-        setUser(result.account);
-        setIsAuthenticated(true);
-      }
+      const loginResult = await msalInstance.loginPopup(loginRequest);
+      setUser(loginResult.account);
+      setIsAuthenticated(true);
     } catch (error) {
       console.error('Login failed:', error);
       setError(error instanceof Error ? error : new Error('Unknown error'));
@@ -160,13 +136,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const logout = () => {
     try {
-      if (inTeamsContext) {
-        // In Teams, just clear the state
-        setUser(null);
-        setIsAuthenticated(false);
-      } else {
-        msalInstance.logout();
-      }
+      msalInstance.logout();
       setUser(null);
       setIsAuthenticated(false);
       navigate('/login');
@@ -181,14 +151,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const account = msalInstance.getAllAccounts()[0];
       if (!account) return null;
 
-      const request = {
-        ...loginRequest,
-        account,
+      const tokenRequest = {
         scopes: resource ? [resource] : loginRequest.scopes,
+        account: account
       };
 
-      const result = await msalInstance.acquireTokenSilent(request);
-      return result.accessToken;
+      try {
+        const response = await msalInstance.acquireTokenSilent(tokenRequest);
+        return response.accessToken;
+      } catch (e) {
+        // If silent token acquisition fails, try interactive
+        const response = await msalInstance.loginPopup(tokenRequest);
+        return response.accessToken;
+      }
     } catch (error) {
       console.error('Token acquisition failed:', error);
       return null;
@@ -196,20 +171,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const getDatabricksToken = async (): Promise<string | null> => {
-    try {
-      const account = msalInstance.getAllAccounts()[0];
-      if (!account) return null;
-
-      const result = await msalInstance.acquireTokenSilent({
-        ...databricksRequest,
-        account,
-      });
-
-      return result.accessToken;
-    } catch (error) {
-      console.error('Databricks token acquisition failed:', error);
-      return null;
-    }
+    return acquireToken('https://databricks.azure.com/user_impersonation');
   };
 
   return (
