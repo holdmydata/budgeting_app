@@ -24,7 +24,8 @@ import {
   MenuItem,
   FormControl,
   InputLabel,
-  SelectChangeEvent
+  SelectChangeEvent,
+  Alert
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import FilterListIcon from '@mui/icons-material/FilterList';
@@ -32,135 +33,7 @@ import AddIcon from '@mui/icons-material/Add';
 import DownloadIcon from '@mui/icons-material/Download';
 import { useData } from '../context/DataContext';
 import { FinancialTransaction } from '../types/data';
-
-// Mock data for initial rendering
-const mockTransactions: FinancialTransaction[] = [
-  {
-    id: '1',
-    date: '2023-03-15T00:00:00Z',
-    glAccount: '1',
-    project: '2',
-    amount: 2999.99,
-    description: 'Software licenses renewal',
-    voucherNumber: 'INV-5678',
-    vendor: '1',
-    userId: 'user-1',
-    status: 'Approved',
-    createdAt: '2023-03-15T10:30:00Z',
-    updatedAt: '2023-03-15T10:30:00Z'
-  },
-  {
-    id: '2',
-    date: '2023-03-10T00:00:00Z',
-    glAccount: '2',
-    project: '1',
-    amount: 1499.95,
-    description: 'New laptops purchase',
-    voucherNumber: 'PO-1234',
-    vendor: '3',
-    userId: 'user-2',
-    status: 'Processed',
-    createdAt: '2023-03-10T14:20:00Z',
-    updatedAt: '2023-03-10T14:20:00Z'
-  },
-  {
-    id: '3',
-    date: '2023-03-05T00:00:00Z',
-    glAccount: '3',
-    project: '1',
-    amount: 399.00,
-    description: 'Cloud storage subscription',
-    voucherNumber: 'SUB-9876',
-    vendor: '2',
-    userId: 'user-1',
-    status: 'Approved',
-    createdAt: '2023-03-05T09:15:00Z',
-    updatedAt: '2023-03-05T09:15:00Z'
-  },
-  {
-    id: '4',
-    date: '2023-03-01T00:00:00Z',
-    glAccount: '4',
-    project: '3',
-    amount: 5000.00,
-    description: 'IT Consulting services',
-    voucherNumber: 'INV-4321',
-    vendor: '4',
-    userId: 'user-3',
-    status: 'Pending',
-    createdAt: '2023-03-01T11:45:00Z',
-    updatedAt: '2023-03-01T11:45:00Z'
-  },
-  {
-    id: '5',
-    date: '2023-02-28T00:00:00Z',
-    glAccount: '5',
-    project: '2',
-    amount: 1200.00,
-    description: 'Staff training program',
-    voucherNumber: 'INV-8765',
-    vendor: '5',
-    userId: 'user-2',
-    status: 'Approved',
-    createdAt: '2023-02-28T16:30:00Z',
-    updatedAt: '2023-02-28T16:30:00Z'
-  },
-  {
-    id: '6',
-    date: '2023-02-20T00:00:00Z',
-    glAccount: '6',
-    
-    project: '2',
-    amount: 850.50,
-    description: 'Network maintenance',
-    voucherNumber: 'SVC-2468',
-    vendor: '5',
-    userId: 'user-1',
-    status: 'Processed',
-    createdAt: '2023-02-20T13:10:00Z',
-    updatedAt: '2023-02-20T13:10:00Z'
-  },
-  {
-    id: '7',
-    date: '2023-02-15T00:00:00Z',
-    glAccount: '7',
-    project: '1',
-    amount: 3499.99,
-    description: 'Server hardware upgrade',
-    voucherNumber: 'PO-3579',
-    vendor: '3',
-    userId: 'user-3',
-    status: 'Pending',
-    createdAt: '2023-02-15T10:45:00Z',
-    updatedAt: '2023-02-15T10:45:00Z'
-  }
-];
-
-// Mock lookup data for GL Accounts and Projects
-const mockGLAccounts = {
-  '1': 'IT Software Licenses',
-  '2': 'IT Hardware',
-  '3': 'IT Cloud Services',
-  '4': 'IT Consulting',
-  '5': 'IT Training',
-  '6': 'IT Support Services',
-  '7': 'Network Infrastructure',
-  '8': 'Data Center Equipment'
-};
-
-const mockProjects = {
-  '1': 'ERP Implementation',
-  '2': 'Network Upgrade',
-  '3': 'Data Migration'
-};
-
-const mockVendors = {
-  '1': 'Acme Tech Solutions',
-  '2': 'DataSphere Inc.',
-  '3': 'AgriTech Hardware Co.',
-  '4': 'FarmSys Consulting',
-  '5': 'Network Solutions Ltd.'
-};
+import { mockGLAccountLookup, mockProjectLookup, mockVendorLookup } from '../services/mockData';
 
 // Column definition for the table
 interface Column {
@@ -182,13 +55,13 @@ const columns: Column[] = [
     id: 'glAccountName', 
     label: 'GL Account',
     minWidth: 180,
-    format: (_: string, row: FinancialTransaction) => mockGLAccounts[row.glAccount as keyof typeof mockGLAccounts] || '-'
+    format: (_: string, row: FinancialTransaction) => mockGLAccountLookup[row.glAccount] || '-'
   },
   { 
     id: 'projectName', 
     label: 'Project',
     minWidth: 160,
-    format: (_: string, row: FinancialTransaction) => row.project ? mockProjects[row.project as keyof typeof mockProjects] || '-' : '-'
+    format: (_: string, row: FinancialTransaction) => mockProjectLookup[row.project] || '-'
   },
   { 
     id: 'description', 
@@ -211,7 +84,13 @@ const columns: Column[] = [
     id: 'vendorName', 
     label: 'Vendor',
     minWidth: 180,
-    format: (_: string, row: FinancialTransaction) => row.vendor ? mockVendors[row.vendor as keyof typeof mockVendors] || '-' : '-'
+    format: (_: string, row: FinancialTransaction) => mockVendorLookup[row.vendor] || '-'
+  },
+  {
+    id: 'status',
+    label: 'Status',
+    minWidth: 120,
+    format: (value: string) => value
   }
 ];
 
@@ -230,9 +109,10 @@ const dateFilters = [
 export const ExpensesPage: React.FC = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  const { isLoading } = useData();
+  const { isLoading, fetchTransactions } = useData();
   
-  const [transactions, setTransactions] = useState<FinancialTransaction[]>(mockTransactions);
+  const [transactions, setTransactions] = useState<FinancialTransaction[]>([]);
+  const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [searchQuery, setSearchQuery] = useState('');
@@ -240,11 +120,48 @@ export const ExpensesPage: React.FC = () => {
   const [orderBy, setOrderBy] = useState<keyof FinancialTransaction>('date');
   const [dateFilter, setDateFilter] = useState('all');
 
+  // Fetch transactions when filters change
   useEffect(() => {
-    // In a real app, we would fetch transactions from API
-    // For now, using mock data
-    setTransactions(mockTransactions);
-  }, []);
+    const loadTransactions = async () => {
+      try {
+        setError(null);
+        const filters: Record<string, any> = {};
+        
+        // Add date filter
+        if (dateFilter !== 'all') {
+          const now = new Date();
+          switch (dateFilter) {
+            case 'current-month':
+              filters.fromDate = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+              break;
+            case 'last-month':
+              filters.fromDate = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString();
+              filters.toDate = new Date(now.getFullYear(), now.getMonth(), 0).toISOString();
+              break;
+            case 'last-quarter':
+              filters.fromDate = new Date(now.getFullYear(), Math.floor(now.getMonth() / 3) * 3 - 3, 1).toISOString();
+              break;
+            case 'ytd':
+              filters.fromDate = new Date(now.getFullYear(), 0, 1).toISOString();
+              break;
+          }
+        }
+
+        // Add search filter if present
+        if (searchQuery) {
+          filters.search = searchQuery;
+        }
+
+        const data = await fetchTransactions(filters);
+        setTransactions(data);
+      } catch (err) {
+        console.error('Error fetching transactions:', err);
+        setError('Failed to load transactions. Please try again later.');
+      }
+    };
+
+    loadTransactions();
+  }, [fetchTransactions, dateFilter, searchQuery]);
 
   const handleRequestSort = (property: keyof FinancialTransaction) => {
     const isAsc = orderBy === property && order === 'asc';
@@ -271,56 +188,8 @@ export const ExpensesPage: React.FC = () => {
     setPage(0);
   };
 
-  // Apply date filter
-  const getFilteredByDate = (data: FinancialTransaction[]): FinancialTransaction[] => {
-    if (dateFilter === 'all') return data;
-    
-    const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    const startOfYear = new Date(now.getFullYear(), 0, 1);
-    const startOfQuarter = new Date(now.getFullYear(), Math.floor(now.getMonth() / 3) * 3 - 3, 1);
-    
-    return data.filter(transaction => {
-      const transactionDate = new Date(transaction.date);
-      
-      switch (dateFilter) {
-        case 'current-month':
-          return transactionDate >= startOfMonth;
-        case 'last-month':
-          return transactionDate >= startOfLastMonth && transactionDate < startOfMonth;
-        case 'last-quarter':
-          return transactionDate >= startOfQuarter;
-        case 'ytd':
-          return transactionDate >= startOfYear;
-        default:
-          return true;
-      }
-    });
-  };
-
-  // Filter transactions based on search query and date filter
-  const filteredTransactions = getFilteredByDate(transactions).filter((transaction) => {
-    const searchText = searchQuery.toLowerCase();
-    const glAccountName = mockGLAccounts[transaction.glAccount as keyof typeof mockGLAccounts] || '';
-    const projectName = transaction.project 
-      ? mockProjects[transaction.project as keyof typeof mockProjects] || ''
-      : '';
-    const vendorName = transaction.vendor
-      ? mockVendors[transaction.vendor as keyof typeof mockVendors] || ''
-      : '';
-      
-    return (
-      glAccountName.toLowerCase().includes(searchText) ||
-      projectName.toLowerCase().includes(searchText) ||
-      transaction.description.toLowerCase().includes(searchText) ||
-      transaction.voucherNumber.toLowerCase().includes(searchText) ||
-      vendorName.toLowerCase().includes(searchText)
-    );
-  });
-
   // Sort transactions
-  const sortedTransactions = [...filteredTransactions].sort((a, b) => {
+  const sortedTransactions = [...transactions].sort((a, b) => {
     const isAsc = order === 'asc';
     
     if (orderBy === 'date' || orderBy === 'createdAt' || orderBy === 'updatedAt') {
@@ -411,6 +280,12 @@ export const ExpensesPage: React.FC = () => {
           </Tooltip>
         </Box>
 
+        {error && (
+          <Box sx={{ p: 2 }}>
+            <Alert severity="error">{error}</Alert>
+          </Box>
+        )}
+
         {isLoading && <LinearProgress />}
 
         <TableContainer sx={{ maxHeight: 'calc(100vh - 300px)' }}>
@@ -460,7 +335,7 @@ export const ExpensesPage: React.FC = () => {
                   })}
                 </TableRow>
               ))}
-              {paginatedTransactions.length === 0 && (
+              {paginatedTransactions.length === 0 && !isLoading && (
                 <TableRow>
                   <TableCell colSpan={columns.length} align="center">
                     {searchQuery || dateFilter !== 'all' 
@@ -475,7 +350,7 @@ export const ExpensesPage: React.FC = () => {
         <TablePagination
           rowsPerPageOptions={[5, 10, 25, 50]}
           component="div"
-          count={filteredTransactions.length}
+          count={sortedTransactions.length}
           rowsPerPage={rowsPerPage}
           page={page}
           onPageChange={handleChangePage}

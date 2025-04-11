@@ -44,49 +44,64 @@ export const mockKPIs: KPI[] = [
 // Mock GL Account data
 export const mockGLAccounts: GLAccount[] = [
   { 
-    id: 'gl-1', 
-    number: '6010', 
-    name: 'IT Equipment', 
-    description: 'Hardware purchases including servers, laptops, and peripherals',
-    budgetedAmount: 500000,
-    spentAmount: 275000,
-    availableAmount: 225000
+    id: 'gl-1',
+    accountNumber: '6010',
+    accountName: 'IT Equipment',
+    accountType: 'Expense',
+    isActive: true,
+    validFrom: '2023-01-01T00:00:00Z',
+    validTo: null,
+    isCurrent: true,
+    createdAt: '2023-01-01T00:00:00Z',
+    updatedAt: '2023-01-01T00:00:00Z'
   },
   { 
-    id: 'gl-2', 
-    number: '6020', 
-    name: 'Software Licenses', 
-    description: 'Annual software subscriptions and one-time license purchases',
-    budgetedAmount: 350000,
-    spentAmount: 290000,
-    availableAmount: 60000
+    id: 'gl-2',
+    accountNumber: '6020',
+    accountName: 'Software Licenses',
+    accountType: 'Expense',
+    isActive: true,
+    validFrom: '2023-01-01T00:00:00Z',
+    validTo: null,
+    isCurrent: true,
+    createdAt: '2023-01-01T00:00:00Z',
+    updatedAt: '2023-01-01T00:00:00Z'
   },
   { 
-    id: 'gl-3', 
-    number: '6030', 
-    name: 'IT Services', 
-    description: 'Consulting, implementation, and managed services',
-    budgetedAmount: 450000,
-    spentAmount: 210000,
-    availableAmount: 240000
+    id: 'gl-3',
+    accountNumber: '6030',
+    accountName: 'IT Services',
+    accountType: 'Expense',
+    isActive: true,
+    validFrom: '2023-01-01T00:00:00Z',
+    validTo: null,
+    isCurrent: true,
+    createdAt: '2023-01-01T00:00:00Z',
+    updatedAt: '2023-01-01T00:00:00Z'
   },
   { 
-    id: 'gl-4', 
-    number: '6040', 
-    name: 'Cloud Infrastructure', 
-    description: 'AWS, Azure, and GCP hosting and services',
-    budgetedAmount: 600000,
-    spentAmount: 250000,
-    availableAmount: 350000
+    id: 'gl-4',
+    accountNumber: '6040',
+    accountName: 'Cloud Infrastructure',
+    accountType: 'Expense',
+    isActive: true,
+    validFrom: '2023-01-01T00:00:00Z',
+    validTo: null,
+    isCurrent: true,
+    createdAt: '2023-01-01T00:00:00Z',
+    updatedAt: '2023-01-01T00:00:00Z'
   },
   { 
-    id: 'gl-5', 
-    number: '6050', 
-    name: 'Network & Telecom', 
-    description: 'Network equipment, ISP services, and telecommunications',
-    budgetedAmount: 300000,
-    spentAmount: 120000,
-    availableAmount: 180000
+    id: 'gl-5',
+    accountNumber: '6050',
+    accountName: 'Network & Telecom',
+    accountType: 'Expense',
+    isActive: true,
+    validFrom: '2023-01-01T00:00:00Z',
+    validTo: null,
+    isCurrent: true,
+    createdAt: '2023-01-01T00:00:00Z',
+    updatedAt: '2023-01-01T00:00:00Z'
   }
 ];
 
@@ -94,105 +109,167 @@ export const mockGLAccounts: GLAccount[] = [
 export const mockProjects: Project[] = [
   {
     id: 'proj-1',
-    name: 'ERP Implementation',
+    projectCode: 'ERP-2023',
+    projectName: 'ERP Implementation',
     description: 'Implementation of new ERP system across all departments',
-    startDate: '2023-01-15',
-    endDate: '2023-12-31',
+    startDate: '2023-01-15T00:00:00Z',
+    endDate: '2023-12-31T00:00:00Z',
     budget: 850000,
     spent: 450000,
     status: 'In Progress',
     owner: 'John Smith',
-    priority: 'High'
+    priority: 'High',
+    glAccount: '6020',
+    createdAt: '2023-01-01T00:00:00Z',
+    updatedAt: '2023-01-01T00:00:00Z'
   },
   {
     id: 'proj-2',
-    name: 'Network Infrastructure Upgrade',
+    projectCode: 'NET-2023',
+    projectName: 'Network Infrastructure Upgrade',
     description: 'Upgrade of corporate network infrastructure and security',
-    startDate: '2023-03-01',
-    endDate: '2023-09-30',
+    startDate: '2023-03-01T00:00:00Z',
+    endDate: '2023-09-30T00:00:00Z',
     budget: 500000,
     spent: 380000,
     status: 'In Progress',
     owner: 'Lisa Johnson',
-    priority: 'Critical'
+    priority: 'Critical',
+    glAccount: '6050',
+    createdAt: '2023-01-01T00:00:00Z',
+    updatedAt: '2023-01-01T00:00:00Z'
   },
   {
     id: 'proj-3',
-    name: 'Cloud Migration',
+    projectCode: 'CLOUD-2023',
+    projectName: 'Cloud Migration',
     description: 'Migration of on-premise applications to cloud infrastructure',
-    startDate: '2023-02-15',
-    endDate: '2024-02-14',
+    startDate: '2023-02-15T00:00:00Z',
+    endDate: '2024-02-14T00:00:00Z',
     budget: 750000,
     spent: 275000,
     status: 'In Progress',
     owner: 'Michael Chen',
-    priority: 'High'
+    priority: 'High',
+    glAccount: '6040',
+    createdAt: '2023-01-01T00:00:00Z',
+    updatedAt: '2023-01-01T00:00:00Z'
   },
   {
     id: 'proj-4',
-    name: 'Security Enhancement Program',
+    projectCode: 'SEC-2023',
+    projectName: 'Security Enhancement Program',
     description: 'Implementation of enhanced security controls and monitoring',
-    startDate: '2023-04-01',
-    endDate: '2023-12-31',
+    startDate: '2023-04-01T00:00:00Z',
+    endDate: '2023-12-31T00:00:00Z',
     budget: 450000,
     spent: 190000,
     status: 'In Progress',
     owner: 'Sarah Williams',
-    priority: 'Critical'
+    priority: 'Critical',
+    glAccount: '6030',
+    createdAt: '2023-01-01T00:00:00Z',
+    updatedAt: '2023-01-01T00:00:00Z'
   }
 ];
 
-// Mock transactions data
+// Lookup data for GL Accounts (maps account number to name)
+export const mockGLAccountLookup: Record<string, string> = {
+  '6010': 'IT Equipment',
+  '6020': 'Software Licenses',
+  '6030': 'IT Services',
+  '6040': 'Cloud Infrastructure',
+  '6050': 'Network & Telecom'
+};
+
+// Lookup data for Projects (maps project id to name)
+export const mockProjectLookup: Record<string, string> = {
+  'proj-1': 'ERP Implementation',
+  'proj-2': 'Network Infrastructure Upgrade',
+  'proj-3': 'Cloud Migration',
+  'proj-4': 'Security Enhancement Program'
+};
+
+// Lookup data for Vendors (maps vendor id to name)
+export const mockVendorLookup: Record<string, string> = {
+  'vendor-1': 'Microsoft',
+  'vendor-2': 'Dell',
+  'vendor-3': 'SAP',
+  'vendor-4': 'Cisco',
+  'vendor-5': 'Accenture'
+};
+
+// Update mockTransactions to match our schema
 export const mockTransactions: FinancialTransaction[] = [
   {
     id: 'tx-1',
-    date: '2023-05-15',
-    vendor: 'Microsoft',
+    date: '2023-05-15T00:00:00Z',
+    vendor: 'vendor-1',
     description: 'Azure Cloud Services - April',
     amount: 45000,
     glAccount: '6040',
     project: 'proj-3',
-    status: 'Processed'
+    status: 'Processed',
+    voucherNumber: 'INV-2023-001',
+    userId: 'user-1',
+    createdAt: '2023-05-15T10:30:00Z',
+    updatedAt: '2023-05-15T10:30:00Z'
   },
   {
     id: 'tx-2',
-    date: '2023-05-12',
-    vendor: 'Dell',
+    date: '2023-05-12T00:00:00Z',
+    vendor: 'vendor-2',
     description: 'Server Hardware for Data Center',
     amount: 125000,
     glAccount: '6010',
     project: 'proj-4',
-    status: 'Processed'
+    status: 'Processed',
+    voucherNumber: 'PO-2023-001',
+    userId: 'user-2',
+    createdAt: '2023-05-12T14:20:00Z',
+    updatedAt: '2023-05-12T14:20:00Z'
   },
   {
     id: 'tx-3',
-    date: '2023-05-10',
-    vendor: 'SAP',
+    date: '2023-05-10T00:00:00Z',
+    vendor: 'vendor-3',
     description: 'ERP Annual License',
     amount: 180000,
     glAccount: '6020',
     project: 'proj-1',
-    status: 'Processed'
+    status: 'Processed',
+    voucherNumber: 'INV-2023-002',
+    userId: 'user-1',
+    createdAt: '2023-05-10T09:15:00Z',
+    updatedAt: '2023-05-10T09:15:00Z'
   },
   {
     id: 'tx-4',
-    date: '2023-05-08',
-    vendor: 'Cisco',
+    date: '2023-05-08T00:00:00Z',
+    vendor: 'vendor-4',
     description: 'Network Equipment - Phase 1',
     amount: 230000,
     glAccount: '6050',
     project: 'proj-2',
-    status: 'Processed'
+    status: 'Processed',
+    voucherNumber: 'PO-2023-002',
+    userId: 'user-3',
+    createdAt: '2023-05-08T11:45:00Z',
+    updatedAt: '2023-05-08T11:45:00Z'
   },
   {
     id: 'tx-5',
-    date: '2023-05-05',
-    vendor: 'Accenture',
+    date: '2023-05-05T00:00:00Z',
+    vendor: 'vendor-5',
     description: 'Consulting Services - April',
     amount: 85000,
     glAccount: '6030',
     project: 'proj-1',
-    status: 'Processed'
+    status: 'Processed',
+    voucherNumber: 'INV-2023-003',
+    userId: 'user-2',
+    createdAt: '2023-05-05T16:30:00Z',
+    updatedAt: '2023-05-05T16:30:00Z'
   }
 ];
 
