@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -11,77 +11,158 @@ import {
   TablePagination,
   TableRow,
   alpha,
+  Alert,
+  LinearProgress,
+  TextField,
+  InputAdornment,
+  IconButton,
+  Tooltip,
+  Button,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  SelectChangeEvent
 } from '@mui/material';
+import SearchIcon from '@mui/icons-material/Search';
+import FilterListIcon from '@mui/icons-material/FilterList';
+import AddIcon from '@mui/icons-material/Add';
 import { GLAccount } from '../types/data';
+import { useData } from '../context/DataContext';
 
-// Mock data for GL accounts
-const mockAccounts: GLAccount[] = [
-  {
-    id: '1',
-    accountNumber: '1000',
-    accountName: 'Cash and Cash Equivalents',
-    accountType: 'Asset',
-    isActive: true,
-    createdAt: '2024-01-01T00:00:00Z',
-    updatedAt: '2024-01-01T00:00:00Z',
+// Column definition for the table
+interface Column {
+  id: keyof GLAccount;
+  label: string;
+  minWidth?: number;
+  align?: 'right' | 'left' | 'center';
+  format?: (value: any) => React.ReactNode;
+}
+
+const columns: Column[] = [
+  { id: 'accountNumber', label: 'Account Number', minWidth: 120 },
+  { id: 'accountName', label: 'Account Name', minWidth: 200 },
+  { id: 'accountType', label: 'Account Type', minWidth: 120 },
+  { 
+    id: 'isActive', 
+    label: 'Status', 
+    minWidth: 100,
+    format: (value: boolean) => (
+      <Box
+        sx={{
+          display: 'inline-block',
+          px: 1,
+          py: 0.5,
+          borderRadius: 1,
+          backgroundColor: value 
+            ? (theme) => alpha(theme.palette.success.main, 0.1)
+            : (theme) => alpha(theme.palette.error.main, 0.1),
+          color: value 
+            ? (theme) => theme.palette.success.main
+            : (theme) => theme.palette.error.main,
+          fontWeight: 500,
+        }}
+      >
+        {value ? 'Active' : 'Inactive'}
+      </Box>
+    )
   },
-  {
-    id: '2',
-    accountNumber: '2000',
-    accountName: 'Accounts Receivable',
-    accountType: 'Asset',
-    isActive: true,
-    createdAt: '2024-01-01T00:00:00Z',
-    updatedAt: '2024-01-01T00:00:00Z',
+  { 
+    id: 'validFrom', 
+    label: 'Valid From', 
+    minWidth: 120,
+    format: (value: string) => new Date(value).toLocaleDateString()
   },
-  {
-    id: '3',
-    accountNumber: '3000',
-    accountName: 'Inventory',
-    accountType: 'Asset',
-    isActive: true,
-    createdAt: '2024-01-01T00:00:00Z',
-    updatedAt: '2024-01-01T00:00:00Z',
-  },
-  {
-    id: '4',
-    accountNumber: '4000',
-    accountName: 'Accounts Payable',
-    accountType: 'Liability',
-    isActive: true,
-    createdAt: '2024-01-01T00:00:00Z',
-    updatedAt: '2024-01-01T00:00:00Z',
-  },
-  {
-    id: '5',
-    accountNumber: '5000',
-    accountName: 'Revenue',
-    accountType: 'Income',
-    isActive: true,
-    createdAt: '2024-01-01T00:00:00Z',
-    updatedAt: '2024-01-01T00:00:00Z',
-  },
-  {
-    id: '6',
-    accountNumber: '6000',
-    accountName: 'Cost of Goods Sold',
-    accountType: 'Expense',
-    isActive: true,
-    createdAt: '2024-01-01T00:00:00Z',
-    updatedAt: '2024-01-01T00:00:00Z',
-  },
+  { 
+    id: 'validTo', 
+    label: 'Valid To', 
+    minWidth: 120,
+    format: (value: string | null) => value ? new Date(value).toLocaleDateString() : 'Current'
+  }
+];
+
+// Account type filter options
+const accountTypeFilters = [
+  { value: 'all', label: 'All Types' },
+  { value: 'Asset', label: 'Asset' },
+  { value: 'Liability', label: 'Liability' },
+  { value: 'Equity', label: 'Equity' },
+  { value: 'Revenue', label: 'Revenue' },
+  { value: 'Expense', label: 'Expense' }
 ];
 
 export const GLAccounts: React.FC = () => {
-  const [accounts] = useState<GLAccount[]>(mockAccounts);
+  const { isLoading, fetchGLAccounts } = useData();
+  const [accounts, setAccounts] = useState<GLAccount[]>([]);
+  const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [accountTypeFilter, setAccountTypeFilter] = useState('all');
+
+  // Fetch GL accounts when filters change
+  useEffect(() => {
+    const loadAccounts = async () => {
+      try {
+        setError(null);
+        const filters: Record<string, any> = {
+          isCurrent: true // Only show current versions by default
+        };
+
+        // Add account type filter
+        if (accountTypeFilter !== 'all') {
+          filters.accountType = accountTypeFilter;
+        }
+
+        // Add search filter
+        if (searchQuery) {
+          filters.search = searchQuery;
+        }
+
+        const data = await fetchGLAccounts(filters);
+        setAccounts(data);
+      } catch (err) {
+        console.error('Error fetching GL accounts:', err);
+        setError('Failed to load GL accounts. Please try again later.');
+      }
+    };
+
+    loadAccounts();
+  }, [fetchGLAccounts, accountTypeFilter, searchQuery]);
+
+  const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(event.target.value);
+    setPage(0);
+  };
+
+  const handleAccountTypeFilterChange = (event: SelectChangeEvent) => {
+    setAccountTypeFilter(event.target.value);
+    setPage(0);
+  };
+
+  // Apply pagination
+  const paginatedAccounts = accounts.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
 
   return (
     <Box sx={{ p: 3 }}>
-      <Typography variant="h4" gutterBottom>
-        GL Accounts
-      </Typography>
+      <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap' }}>
+        <Box>
+          <Typography variant="h4" component="h1" gutterBottom>
+            GL Accounts
+          </Typography>
+          <Typography variant="subtitle1" color="text.secondary">
+            Manage your general ledger accounts and chart of accounts
+          </Typography>
+        </Box>
+        <Button 
+          variant="contained" 
+          color="primary" 
+          startIcon={<AddIcon />}
+        >
+          New Account
+        </Button>
+      </Box>
+
       <Paper 
         sx={{ 
           overflow: 'hidden',
@@ -90,43 +171,89 @@ export const GLAccounts: React.FC = () => {
           borderColor: (theme) => alpha(theme.palette.divider, 0.1),
         }}
       >
+        <Box sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
+          <TextField
+            placeholder="Search accounts..."
+            variant="outlined"
+            size="small"
+            value={searchQuery}
+            onChange={handleSearchChange}
+            sx={{ flexGrow: 1 }}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon />
+                </InputAdornment>
+              ),
+            }}
+          />
+          
+          <FormControl size="small" sx={{ minWidth: 150 }}>
+            <InputLabel id="account-type-filter-label">Account Type</InputLabel>
+            <Select
+              labelId="account-type-filter-label"
+              value={accountTypeFilter}
+              label="Account Type"
+              onChange={handleAccountTypeFilterChange}
+            >
+              {accountTypeFilters.map((option) => (
+                <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+          
+          <Tooltip title="Additional filters">
+            <IconButton>
+              <FilterListIcon />
+            </IconButton>
+          </Tooltip>
+        </Box>
+
+        {error && (
+          <Box sx={{ p: 2 }}>
+            <Alert severity="error">{error}</Alert>
+          </Box>
+        )}
+
+        {isLoading && <LinearProgress />}
+
         <TableContainer>
           <Table>
             <TableHead>
               <TableRow>
-                <TableCell>Account Number</TableCell>
-                <TableCell>Account Name</TableCell>
-                <TableCell>Account Type</TableCell>
-                <TableCell>Status</TableCell>
+                {columns.map((column) => (
+                  <TableCell
+                    key={column.id}
+                    align={column.align}
+                    style={{ minWidth: column.minWidth }}
+                  >
+                    {column.label}
+                  </TableCell>
+                ))}
               </TableRow>
             </TableHead>
             <TableBody>
-              {accounts.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((account) => (
-                <TableRow key={account.id} hover>
-                  <TableCell>{account.accountNumber}</TableCell>
-                  <TableCell>{account.accountName}</TableCell>
-                  <TableCell>{account.accountType}</TableCell>
-                  <TableCell>
-                    <Box
-                      sx={{
-                        display: 'inline-block',
-                        px: 1,
-                        py: 0.5,
-                        borderRadius: 1,
-                        backgroundColor: account.isActive 
-                          ? (theme) => alpha(theme.palette.success.main, 0.1)
-                          : (theme) => alpha(theme.palette.error.main, 0.1),
-                        color: account.isActive 
-                          ? (theme) => theme.palette.success.main
-                          : (theme) => theme.palette.error.main,
-                        fontWeight: 500,
-                      }}
-                    >
-                      {account.isActive ? 'Active' : 'Inactive'}
-                    </Box>
-                  </TableCell>
+              {paginatedAccounts.map((account) => (
+                <TableRow key={account.id} hover sx={{ cursor: 'pointer' }}>
+                  {columns.map((column) => {
+                    const value = account[column.id];
+                    return (
+                      <TableCell key={column.id} align={column.align}>
+                        {column.format ? column.format(value) : value || '-'}
+                      </TableCell>
+                    );
+                  })}
                 </TableRow>
               ))}
+              {paginatedAccounts.length === 0 && !isLoading && (
+                <TableRow>
+                  <TableCell colSpan={columns.length} align="center">
+                    {searchQuery || accountTypeFilter !== 'all'
+                      ? 'No accounts matching search criteria'
+                      : 'No accounts available'}
+                  </TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
         </TableContainer>

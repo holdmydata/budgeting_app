@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -27,7 +27,8 @@ import {
   MenuItem,
   FormControl,
   InputLabel,
-  SelectChangeEvent
+  SelectChangeEvent,
+  Alert
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import FilterListIcon from '@mui/icons-material/FilterList';
@@ -38,55 +39,6 @@ import PauseCircleIcon from '@mui/icons-material/PauseCircle';
 import PlayCircleIcon from '@mui/icons-material/PlayCircle';
 import { useData } from '../context/DataContext';
 import { Project } from '../types/data';
-
-// Mock data for initial rendering
-const mockProjectData: Project[] = [
-  {
-    id: "1",
-    projectCode: "PRJ-001",
-    projectName: "IT Infrastructure Upgrade",
-    description: "Upgrade company IT infrastructure",
-    startDate: "2023-01-01",
-    endDate: "2023-12-31",
-    budget: 300000,
-    spent: 0,
-    status: "Planned",
-    owner: "1",
-    priority: "Medium",
-    glAccount: "1",
-    createdAt: "2023-01-01",
-    updatedAt: "2023-01-01"
-  },
-  {
-    id: "2",
-    projectCode: "PRJ-002",
-    projectName: "Marketing Campaign",
-    description: "Q3 marketing campaign for new product",
-    startDate: "2023-07-01",
-    endDate: "2023-09-30",
-    budget: 150000,
-    spent: 0,
-    status: "Planned",
-    owner: "2",
-    priority: "Medium",
-    glAccount: "2",
-    createdAt: "2023-01-01",
-    updatedAt: "2023-01-01"
-  }
-];
-
-// Mock manager data
-const mockManagers = {
-  '1': 'Brad',
-  '2': 'Kevin',
-  '3': 'Drew',
-  '4': 'Ana',
-  '5': 'Mike',
-  '6': 'Scott',
-  '7': 'Jim',
-  '8': 'Jill',
-  '9': 'Jack',
-};
 
 // Format currency helper
 const formatCurrency = (value: number): string => {
@@ -118,14 +70,14 @@ const columns: Column[] = [
       
       switch(value) {
         case 'Planned':
-          color = 'success';
+          color = 'info';
           icon = <PlayCircleIcon fontSize="small" />;
-          label = 'Active';
+          label = 'Planned';
           break;
         case 'In Progress':
-          color = 'info';
+          color = 'success';
           icon = <CheckCircleIcon fontSize="small" />;
-          label = 'Planned';
+          label = 'In Progress';
           break;
         case 'Completed':
           color = 'default';
@@ -176,27 +128,19 @@ const columns: Column[] = [
     label: 'Budget', 
     minWidth: 150,
     align: 'right',
-    format: (value: number) => value.toLocaleString('en-US', { style: 'currency', currency: 'USD' })
+    format: (value: number) => formatCurrency(value)
   },
   { 
-    id: 'budgetUsed', 
-    label: 'Budget Used', 
+    id: 'spent', 
+    label: 'Spent', 
     minWidth: 150,
     align: 'right',
-    format: (_: any, row?: Project) => {
-      if (!row) return '-';
-      const used = row.budget * 0.75; // Mock usage as 75% of budget
-      return formatCurrency(used);
-    }
+    format: (value: number) => formatCurrency(value)
   },
   { 
-    id: 'managerName', 
+    id: 'owner', 
     label: 'Manager', 
-    minWidth: 180,
-    format: (_: any, row?: Project) => {
-      if (!row) return '-';
-      return mockManagers[row.owner as keyof typeof mockManagers] || '-';
-    }
+    minWidth: 180
   }
 ];
 
@@ -216,7 +160,10 @@ const statusFilters = [
 const ProjectsPage: React.FC = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  const { isLoading } = useData();
+  const { isLoading, fetchProjects } = useData();
+  
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [order, setOrder] = useState<Order>('asc');
@@ -224,14 +171,39 @@ const ProjectsPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
 
-  // Project statistics
-  const activeProjects = mockProjectData.filter(p => p.status === 'Planned').length;
-  const completedProjects = mockProjectData.filter(p => p.status === 'Completed').length;
-  const totalBudget = mockProjectData.reduce((sum, project) => sum + project.budget, 0);
-  const usedBudget = mockProjectData.reduce((sum, project) => {
-    const usage = 0.75; // Mock usage as 75% of budget
-    return sum + (project.budget * usage);
-  }, 0);
+  // Fetch projects when filters change
+  useEffect(() => {
+    const loadProjects = async () => {
+      try {
+        setError(null);
+        const filters: Record<string, any> = {};
+        
+        // Add status filter
+        if (statusFilter !== 'all') {
+          filters.status = statusFilter;
+        }
+
+        // Add search filter
+        if (searchQuery) {
+          filters.search = searchQuery;
+        }
+
+        const data = await fetchProjects();
+        setProjects(data);
+      } catch (err) {
+        console.error('Error fetching projects:', err);
+        setError('Failed to load projects. Please try again later.');
+      }
+    };
+
+    loadProjects();
+  }, [fetchProjects, statusFilter, searchQuery]);
+
+  // Calculate statistics from current data
+  const activeProjects = projects.filter(p => p.status === 'In Progress').length;
+  const completedProjects = projects.filter(p => p.status === 'Completed').length;
+  const totalBudget = projects.reduce((sum, project) => sum + project.budget, 0);
+  const totalSpent = projects.reduce((sum, project) => sum + project.spent, 0);
 
   const handleRequestSort = (property: keyof Project) => {
     const isAsc = orderBy === property && order === 'asc';
@@ -258,31 +230,24 @@ const ProjectsPage: React.FC = () => {
     setPage(0);
   };
 
-  // Filter projects based on search query and status filter
-  const filteredProjects = mockProjectData.filter((project) => {
-    // Status filter
-    if (statusFilter !== 'all' && project.status !== statusFilter) {
-      return false;
-    }
-
-    // Search query filter
-    const searchLower = searchQuery.toLowerCase();
-    return (
-      project.projectCode.toLowerCase().includes(searchLower) ||
-      project.projectName.toLowerCase().includes(searchLower) ||
-      project.description.toLowerCase().includes(searchLower)
-    );
-  });
-
   // Sort projects
-  const sortedProjects = [...filteredProjects].sort((projectA, projectB) => {
-    const aValue = projectA[orderBy];
-    const bValue = projectB[orderBy];
-    if (order === 'asc') {
-      return aValue < bValue ? -1 : aValue > bValue ? 1 : 0;
-    } else {
-      return bValue < aValue ? -1 : bValue > aValue ? 1 : 0;
+  const sortedProjects = [...projects].sort((a, b) => {
+    const isAsc = order === 'asc';
+    
+    if (orderBy === 'startDate' || orderBy === 'endDate' || orderBy === 'createdAt' || orderBy === 'updatedAt') {
+      return isAsc 
+        ? new Date(a[orderBy]).getTime() - new Date(b[orderBy]).getTime()
+        : new Date(b[orderBy]).getTime() - new Date(a[orderBy]).getTime();
+    } 
+    
+    if (orderBy === 'budget' || orderBy === 'spent') {
+      return isAsc ? a[orderBy] - b[orderBy] : b[orderBy] - a[orderBy];
     }
+    
+    // Default string comparison
+    const aValue = String(a[orderBy] || '');
+    const bValue = String(b[orderBy] || '');
+    return isAsc ? aValue.localeCompare(bValue) : bValue.localeCompare(aValue);
   });
 
   // Get current page of projects
@@ -351,7 +316,7 @@ const ProjectsPage: React.FC = () => {
               Total Budget
             </Typography>
             <Typography variant="h5" component="div">
-              {totalBudget.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })}
+              {formatCurrency(totalBudget)}
             </Typography>
           </CardContent>
         </Card>
@@ -361,14 +326,20 @@ const ProjectsPage: React.FC = () => {
               Budget Used
             </Typography>
             <Typography variant="h5" component="div">
-              {usedBudget.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })}
+              {formatCurrency(totalSpent)}
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              {Math.round((usedBudget / totalBudget) * 100)}% of total
+              {totalBudget > 0 ? Math.round((totalSpent / totalBudget) * 100) : 0}% of total
             </Typography>
           </CardContent>
         </Card>
       </Box>
+
+      {error && (
+        <Box sx={{ mb: 3 }}>
+          <Alert severity="error">{error}</Alert>
+        </Box>
+      )}
 
       {/* Loading state */}
       {isLoading && (
@@ -452,10 +423,7 @@ const ProjectsPage: React.FC = () => {
                   sx={{ cursor: 'pointer' }}
                 >
                   {columns.map((column) => {
-                    const value = column.id === 'budgetUsed' || column.id === 'managerName' 
-                      ? null
-                      : project[column.id as keyof Project];
-                    
+                    const value = project[column.id as keyof Project];
                     return (
                       <TableCell key={column.id} align={column.align}>
                         {column.format ? column.format(value, project) : value || '-'}
@@ -464,7 +432,7 @@ const ProjectsPage: React.FC = () => {
                   })}
                 </TableRow>
               ))}
-              {displayedProjects.length === 0 && (
+              {displayedProjects.length === 0 && !isLoading && (
                 <TableRow>
                   <TableCell colSpan={columns.length} align="center">
                     {searchQuery || statusFilter !== 'all'
@@ -479,7 +447,7 @@ const ProjectsPage: React.FC = () => {
         <TablePagination
           rowsPerPageOptions={[5, 10, 25, 50]}
           component="div"
-          count={filteredProjects.length}
+          count={sortedProjects.length}
           rowsPerPage={rowsPerPage}
           page={page}
           onPageChange={handleChangePage}
