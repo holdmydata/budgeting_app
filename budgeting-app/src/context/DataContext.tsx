@@ -9,7 +9,7 @@ import {
   mockTransactions, 
   mockBudgetEntries 
 } from '../services/mockData';
-import { DatabricksApi } from '../api/databricksApi';
+import { DatabricksConnector } from '../api/databricksConnector';
 
 // Databricks configuration interface
 interface DatabricksConfig {
@@ -17,8 +17,9 @@ interface DatabricksConfig {
   catalogName: string;   // e.g., main, hive_metastore
   schema?: string;       // e.g., default, your_schema_name
   warehouseId?: string; // SQL warehouse ID
-  computeHost?: string; // e.g., adb-xxx.azuredatabricks.net
+  apiKey?: string;     // Databricks API key for direct authentication
   httpPath?: string;    // e.g., /sql/1.0/warehouses/xxx
+  computeHost?: string; // e.g., adb-xxx.azuredatabricks.net
   port?: number;        // default is 443
   useSSL?: boolean;     // default is true
 }
@@ -82,12 +83,12 @@ interface DataProviderProps {
 }
 
 export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
-  const { acquireToken, getDatabricksToken } = useAuth();
+  const { acquireToken } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [connectionType, setConnectionType] = useState<ConnectionType>(ConnectionType.MOCK);
   const [databricksConfig, setDatabricksConfig] = useState<DatabricksConfig | null>(null);
   const [sqlServerConfig, setSqlServerConfig] = useState<SqlServerConfig | null>(null);
-  const [databricksApi, setDatabricksApi] = useState<DatabricksApi | null>(null);
+  const [databricksConnector, setDatabricksConnector] = useState<DatabricksConnector | null>(null);
 
   // Helper function to make authenticated API calls
   const fetchWithAuth = async <T,>(url: string, options: RequestInit = {}): Promise<T> => {
@@ -156,83 +157,20 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
     }
   };
 
-  // Initialize or update Databricks API when config changes
-  React.useEffect(() => {
-    const initDatabricksApi = async () => {
-      if (databricksConfig && connectionType === ConnectionType.DATABRICKS) {
-        try {
-          const token = await getDatabricksToken();
-          if (token) {
-            const api = new DatabricksApi(
-              databricksConfig.workspaceUrl,
-              token,
-              {
-                catalog: databricksConfig.catalogName,
-                schema: databricksConfig.schema,
-                warehouse_id: databricksConfig.warehouseId
-              }
-            );
-            setDatabricksApi(api);
-          }
-        } catch (error) {
-          console.error('Failed to initialize Databricks API:', error);
-        }
-      }
-    };
-
-    initDatabricksApi();
-  }, [databricksConfig, connectionType, getDatabricksToken]);
-
   // Helper function to make authenticated Databricks API calls
-  const fetchFromDatabricks = async <T,>(query: string, parameters?: Record<string, any>): Promise<T> => {
+  const fetchFromDatabricks = async <T,>(query: string): Promise<T> => {
     if (!databricksConfig) {
       throw new Error('Databricks configuration not set');
     }
 
     setIsLoading(true);
     try {
-      if (databricksApi) {
-        // Use the DatabricksApi if it's initialized
-        return await databricksApi.executeCustomQuery<T>(query, { parameters }) as T;
+      if (databricksConnector) {
+        // Use the DatabricksConnector if it's initialized
+        const results = await databricksConnector.executeQuery<T extends any[] ? T[number] : T>(query);
+        return Array.isArray(results) ? results as unknown as T : results as T;
       } else {
-        // Fall back to the original implementation
-        const token = await getDatabricksToken();
-        if (!token) {
-          throw new Error('Not authenticated for Databricks');
-        }
-
-        // Add query timeout and parameter binding
-        const response = await fetch(`${databricksConfig.workspaceUrl}/api/2.0/sql/statements`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            catalog: databricksConfig.catalogName,
-            schema: databricksConfig.schema || 'default',
-            statement: query,
-            parameters: parameters || {},
-            wait_timeout: 60, // 60 second timeout
-            warehouse_id: databricksConfig.warehouseId,
-            byte_limit: 1024 * 1024 * 10, // 10MB limit
-          }),
-        });
-
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => null);
-          throw new Error(`Databricks API error: ${response.status} - ${errorData?.message || 'Unknown error'}`);
-        }
-
-        const data = await response.json();
-        
-        // Handle Databricks specific response format
-        if (data.status === 'error') {
-          throw new Error(`Databricks query error: ${data.error}`);
-        }
-
-        // Extract results from Databricks response format
-        return Array.isArray(data.results) ? data.results as T : data as T;
+        throw new Error('Databricks connector not initialized');
       }
     } catch (error) {
       console.error('Databricks query failed:', error);
@@ -323,28 +261,24 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
         throw new Error('Databricks configuration not set');
       }
 
-      // Initialize the Databricks API
-      const token = await getDatabricksToken();
-      if (!token) {
-        throw new Error('Not authenticated for Databricks');
+      if (!databricksConfig.httpPath) {
+        throw new Error('HTTP Path is required for Databricks connection');
+      }
+
+      // Create a new DatabricksConnector instance
+      const connector = new DatabricksConnector(databricksConfig);
+      
+      // Test the connection
+      const isConnected = await connector.connect();
+      
+      if (!isConnected) {
+        throw new Error('Failed to connect to Databricks');
       }
       
-      const api = new DatabricksApi(
-        databricksConfig.workspaceUrl,
-        token,
-        {
-          catalog: databricksConfig.catalogName,
-          schema: databricksConfig.schema,
-          warehouse_id: databricksConfig.warehouseId
-        }
-      );
-
-      // Test the connection with a simple query
-      await api.executeCustomQuery('SELECT 1');
-      
       // Update state
-      setDatabricksApi(api);
+      setDatabricksConnector(connector);
       setConnectionType(ConnectionType.DATABRICKS);
+      console.log('Successfully connected to Databricks');
       return true;
     } catch (error) {
       console.error('Databricks connection test failed:', error);
@@ -376,6 +310,25 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
 
   // Data fetching functions - these can now use either connection type
   const fetchDashboardKPIs = async (): Promise<KPI[]> => {
+    if (connectionType === ConnectionType.DATABRICKS) {
+      if (databricksConnector) {
+        return await databricksConnector.fetchDashboardKPIs();
+      }
+      
+      // Fall back to executing a query directly
+      const query = `
+        SELECT 
+          id,
+          title,
+          value,
+          formattedValue,
+          change,
+          secondaryValue
+        FROM kpi_view
+      `;
+      return await fetchFromDatabricks<KPI[]>(query);
+    }
+
     if (connectionType === ConnectionType.SQL_SERVER) {
       // Example SQL query for KPIs - adjust to match your schema
       const query = `SELECT * FROM KPIs`;
@@ -388,14 +341,13 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
 
   const fetchProjects = async (): Promise<Project[]> => {
     if (connectionType === ConnectionType.DATABRICKS) {
-      if (databricksApi) {
-        // Use DatabricksApi if available
-        return await databricksApi.getProjects();
-      } else {
-        // Fall back to the original implementation
-        const query = 'SELECT * FROM projects';
-        return await fetchFromDatabricks<Project[]>(query);
+      if (databricksConnector) {
+        return await databricksConnector.fetchProjects();
       }
+      
+      // Fall back to executing a query directly
+      const query = 'SELECT * FROM projects';
+      return await fetchFromDatabricks<Project[]>(query);
     }
     
     if (connectionType === ConnectionType.SQL_SERVER) {
@@ -422,19 +374,16 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
 
   const fetchGLAccounts = async (filters?: object): Promise<GLAccount[]> => {
     if (connectionType === ConnectionType.DATABRICKS) {
-      if (databricksApi) {
-        // Use DatabricksApi if available
-        return await databricksApi.getGLAccounts({
-          parameters: filters
-        });
-      } else {
-        // Fall back to the original implementation
-        const { query, parameters } = buildDatabricksQuery(
-          'SELECT * FROM gl_accounts',
-          filters
-        );
-        return await fetchFromDatabricks<GLAccount[]>(query, parameters);
+      if (databricksConnector) {
+        return await databricksConnector.fetchGLAccounts();
       }
+      
+      // Fall back to executing a query directly
+      const { query, parameters } = buildDatabricksQuery(
+        'SELECT * FROM gl_accounts',
+        filters
+      );
+      return await fetchFromDatabricks<GLAccount[]>(query);
     }
     
     if (connectionType === ConnectionType.SQL_SERVER) {
@@ -448,19 +397,16 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
 
   const fetchTransactions = async (filters: object = {}): Promise<FinancialTransaction[]> => {
     if (connectionType === ConnectionType.DATABRICKS) {
-      if (databricksApi) {
-        // Use DatabricksApi if available
-        return await databricksApi.getTransactions({
-          parameters: filters
-        });
-      } else {
-        // Fall back to the original implementation
-        const { query, parameters } = buildDatabricksQuery(
-          'SELECT * FROM financial_transactions',
-          filters
-        );
-        return await fetchFromDatabricks<FinancialTransaction[]>(query, parameters);
+      if (databricksConnector) {
+        return await databricksConnector.fetchTransactions(filters);
       }
+      
+      // Fall back to executing a query directly
+      const { query, parameters } = buildDatabricksQuery(
+        'SELECT * FROM financial_transactions',
+        filters
+      );
+      return await fetchFromDatabricks<FinancialTransaction[]>(query);
     }
     
     if (connectionType === ConnectionType.SQL_SERVER) {
@@ -482,32 +428,16 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
 
   const fetchBudgetEntries = async (filters: object = {}): Promise<BudgetEntry[]> => {
     if (connectionType === ConnectionType.DATABRICKS) {
-      if (databricksApi) {
-        // Use DatabricksApi if available
-        return await databricksApi.executeCustomQuery<BudgetEntry>(`
-          SELECT 
-            id,
-            fiscal_year as fiscalYear,
-            fiscal_quarter as fiscalQuarter,
-            fiscal_month as fiscalMonth,
-            gl_account_id as glAccountId,
-            project_id as projectId,
-            amount,
-            approval_status as approvalStatus,
-            approved_by_id as approvedById,
-            created_by_id as createdById
-          FROM budget_entries
-          ${Object.keys(filters).length > 0 ? 'WHERE ' + Object.entries(filters)
-            .map(([key, val]) => `${key} = '${val}'`).join(' AND ') : ''}
-        `);
-      } else {
-        // Fall back to the original implementation
-        const { query, parameters } = buildDatabricksQuery(
-          'SELECT * FROM budget_entries',
-          filters
-        );
-        return await fetchFromDatabricks<BudgetEntry[]>(query, parameters);
+      if (databricksConnector) {
+        return await databricksConnector.fetchBudgetEntries(filters);
       }
+      
+      // Fall back to executing a query directly
+      const { query, parameters } = buildDatabricksQuery(
+        'SELECT * FROM budget_entries',
+        filters
+      );
+      return await fetchFromDatabricks<BudgetEntry[]>(query);
     }
     
     if (connectionType === ConnectionType.SQL_SERVER) {

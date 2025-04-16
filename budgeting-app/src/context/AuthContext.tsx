@@ -33,8 +33,8 @@ const loginRequest = {
 
 // Fabric/Databricks configuration
 const fabricConfig = {
-  catalog: import.meta.env.VITE_FABRIC_CATALOG || 'dev_scratchpad',
-  schema: import.meta.env.VITE_FABRIC_SCHEMA || 'budgeting-app'
+  catalog: import.meta.env.VITE_FABRIC_CATALOG,
+  schema: import.meta.env.VITE_FABRIC_SCHEMA
 };
 
 interface AuthContextType {

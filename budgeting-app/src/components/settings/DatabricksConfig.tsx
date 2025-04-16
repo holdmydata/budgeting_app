@@ -11,9 +11,14 @@ import {
   alpha,
   useTheme,
   FormControlLabel,
-  Switch
+  Switch,
+  InputAdornment,
+  IconButton,
+  Tooltip
 } from '@mui/material';
 import { useData } from '../../context/DataContext';
+import VisibilityIcon from '@mui/icons-material/Visibility';
+import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 
 export const DatabricksConfig: React.FC = () => {
   const theme = useTheme();
@@ -21,11 +26,13 @@ export const DatabricksConfig: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [showApiKey, setShowApiKey] = useState(false);
   const [formData, setFormData] = useState({
     workspaceUrl: databricksConfig?.workspaceUrl || '',
     catalogName: databricksConfig?.catalogName || '',
     schema: databricksConfig?.schema || 'default',
     warehouseId: databricksConfig?.warehouseId || '',
+    apiKey: databricksConfig?.apiKey || '',
     computeHost: databricksConfig?.computeHost || '',
     httpPath: databricksConfig?.httpPath || '',
     port: databricksConfig?.port || 443,
@@ -39,6 +46,7 @@ export const DatabricksConfig: React.FC = () => {
         catalogName: databricksConfig.catalogName,
         schema: databricksConfig.schema || 'default',
         warehouseId: databricksConfig.warehouseId || '',
+        apiKey: databricksConfig.apiKey || '',
         computeHost: databricksConfig.computeHost || '',
         httpPath: databricksConfig.httpPath || '',
         port: databricksConfig.port || 443,
@@ -134,6 +142,31 @@ export const DatabricksConfig: React.FC = () => {
             fullWidth
             placeholder="xxxxxxxxxxxxxxxx"
             helperText="Enter your SQL warehouse ID (optional)"
+          />
+          
+          <TextField
+            label="API Key"
+            name="apiKey"
+            type={showApiKey ? "text" : "password"}
+            value={formData.apiKey}
+            onChange={handleChange}
+            fullWidth
+            placeholder="dapi123456789abcdef"
+            helperText="Enter your Databricks API key for direct authentication (recommended)"
+            InputProps={{
+              endAdornment: (
+                <InputAdornment position="end">
+                  <Tooltip title={showApiKey ? "Hide API Key" : "Show API Key"}>
+                    <IconButton
+                      onClick={() => setShowApiKey(!showApiKey)}
+                      edge="end"
+                    >
+                      {showApiKey ? <VisibilityOffIcon /> : <VisibilityIcon />}
+                    </IconButton>
+                  </Tooltip>
+                </InputAdornment>
+              )
+            }}
           />
 
           <TextField
