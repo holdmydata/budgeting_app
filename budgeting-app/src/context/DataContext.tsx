@@ -90,6 +90,34 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
   const [sqlServerConfig, setSqlServerConfig] = useState<SqlServerConfig | null>(null);
   const [databricksConnector, setDatabricksConnector] = useState<DatabricksConnector | null>(null);
 
+  // Clean up connections when unmounting or when connection type changes
+  React.useEffect(() => {
+    return () => {
+      // Close Databricks connection when unmounting
+      if (databricksConnector) {
+        console.log('Closing Databricks connection');
+        databricksConnector.close().catch(err => {
+          console.error('Error closing Databricks connection:', err);
+        });
+      }
+    };
+  }, [databricksConnector]);
+
+  // Clean up connections when connection type changes
+  React.useEffect(() => {
+    const cleanupPreviousConnections = async () => {
+      if (databricksConnector && connectionType !== ConnectionType.DATABRICKS) {
+        console.log('Closing Databricks connection due to connection type change');
+        await databricksConnector.close().catch(err => {
+          console.error('Error closing Databricks connection:', err);
+        });
+        setDatabricksConnector(null);
+      }
+    };
+    
+    cleanupPreviousConnections();
+  }, [connectionType]);
+
   // Helper function to make authenticated API calls
   const fetchWithAuth = async <T,>(url: string, options: RequestInit = {}): Promise<T> => {
     if (useMockData || connectionType === ConnectionType.MOCK) {

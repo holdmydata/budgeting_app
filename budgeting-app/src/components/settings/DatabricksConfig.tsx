@@ -20,6 +20,14 @@ import { useData } from '../../context/DataContext';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 
+// Default values from environment variables
+const defaultWorkspaceUrl = import.meta.env.VITE_DATABRICKS_WORKSPACE_URL || '';
+const defaultCatalogName = import.meta.env.VITE_DATABRICKS_CATALOG_NAME || '';
+const defaultSchema = import.meta.env.VITE_DATABRICKS_SCHEMA || 'default';
+const defaultWarehouseId = import.meta.env.VITE_DATABRICKS_WAREHOUSE_ID || '';
+const defaultApiKey = import.meta.env.VITE_DATABRICKS_API_KEY || '';
+const defaultHttpPath = import.meta.env.VITE_DATABRICKS_HTTP_PATH || '';
+
 export const DatabricksConfig: React.FC = () => {
   const theme = useTheme();
   const { databricksConfig, setDatabricksConfig, connectToDatabricks } = useData();
@@ -28,13 +36,13 @@ export const DatabricksConfig: React.FC = () => {
   const [success, setSuccess] = useState(false);
   const [showApiKey, setShowApiKey] = useState(false);
   const [formData, setFormData] = useState({
-    workspaceUrl: databricksConfig?.workspaceUrl || '',
-    catalogName: databricksConfig?.catalogName || '',
-    schema: databricksConfig?.schema || 'default',
-    warehouseId: databricksConfig?.warehouseId || '',
-    apiKey: databricksConfig?.apiKey || '',
+    workspaceUrl: databricksConfig?.workspaceUrl || defaultWorkspaceUrl,
+    catalogName: databricksConfig?.catalogName || defaultCatalogName,
+    schema: databricksConfig?.schema || defaultSchema,
+    warehouseId: databricksConfig?.warehouseId || defaultWarehouseId,
+    apiKey: databricksConfig?.apiKey || defaultApiKey,
     computeHost: databricksConfig?.computeHost || '',
-    httpPath: databricksConfig?.httpPath || '',
+    httpPath: databricksConfig?.httpPath || defaultHttpPath,
     port: databricksConfig?.port || 443,
     useSSL: databricksConfig?.useSSL ?? true
   });
@@ -42,13 +50,13 @@ export const DatabricksConfig: React.FC = () => {
   useEffect(() => {
     if (databricksConfig) {
       setFormData({
-        workspaceUrl: databricksConfig.workspaceUrl,
-        catalogName: databricksConfig.catalogName,
-        schema: databricksConfig.schema || 'default',
-        warehouseId: databricksConfig.warehouseId || '',
-        apiKey: databricksConfig.apiKey || '',
+        workspaceUrl: databricksConfig.workspaceUrl || defaultWorkspaceUrl,
+        catalogName: databricksConfig.catalogName || defaultCatalogName,
+        schema: databricksConfig.schema || defaultSchema,
+        warehouseId: databricksConfig.warehouseId || defaultWarehouseId,
+        apiKey: databricksConfig.apiKey || defaultApiKey,
         computeHost: databricksConfig.computeHost || '',
-        httpPath: databricksConfig.httpPath || '',
+        httpPath: databricksConfig.httpPath || defaultHttpPath,
         port: databricksConfig.port || 443,
         useSSL: databricksConfig.useSSL ?? true
       });
