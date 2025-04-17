@@ -2,6 +2,7 @@ const { ApolloServer } = require('apollo-server');
 const { readFileSync } = require('fs');
 const { resolve } = require('path');
 const knex = require('knex');
+require('dotenv').config();
 
 // Import data sources
 const TransactionsAPI = require('./dataSources/TransactionsAPI');
@@ -16,14 +17,25 @@ const typeDefs = readFileSync(resolve(__dirname, 'schema.graphql'), 'utf-8');
 
 // Configure database connection
 const knexConfig = {
-  client: 'pg',
-  connection: {
-    host: process.env.DB_HOST || 'localhost',
-    port: process.env.DB_PORT || 5432,
-    user: process.env.DB_USER || 'postgres',
-    password: process.env.DB_PASSWORD || 'postgres',
-    database: process.env.DB_NAME || 'financial_db',
-  },
+  client: process.env.DB_DRIVER === 'databricks' ? 'databricks-sql-node' : 'pg',
+  connection: process.env.DB_DRIVER === 'databricks' 
+    ? {
+        host: process.env.DB_HOST,
+        port: process.env.DB_PORT || 443,
+        token: process.env.DB_PASSWORD,
+        path: process.env.DB_HTTP_PATH,
+        catalog: process.env.DB_CATALOG,
+        schema: process.env.DB_SCHEMA,
+        httpPath: process.env.DB_HTTP_PATH,
+        protocol: 'https',
+      }
+    : {
+        host: process.env.DB_HOST || 'localhost',
+        port: process.env.DB_PORT || 5432,
+        user: process.env.DB_USER || 'postgres',
+        password: process.env.DB_PASSWORD || 'postgres',
+        database: process.env.DB_NAME || 'financial_db',
+      },
   pool: {
     min: 2,
     max: 10
@@ -54,7 +66,8 @@ const server = new ApolloServer({
 });
 
 // Start the server
-server.listen().then(({ url }) => {
+const port = process.env.PORT || 4000;
+server.listen(port).then(({ url }) => {
   console.log(`🚀 Financial GraphQL API ready at ${url}`);
 });
 

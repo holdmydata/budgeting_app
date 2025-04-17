@@ -15,7 +15,8 @@
     "dotenv": "^16.0.1",
     "graphql": "^16.6.0",
     "knex": "^2.3.0",
-    "pg": "^8.8.0"
+    "pg": "^8.8.0",
+    "databricks-sql-node": "^1.1.0"
   },
   "devDependencies": {
     "jest": "^28.1.3",

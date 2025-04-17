@@ -1,16 +1,43 @@
 // Load environment variables
 require('dotenv').config();
 
+const getDatabricksConfig = () => {
+  if (process.env.DB_DRIVER !== 'databricks') {
+    return null;
+  }
+  
+  return {
+    host: process.env.DB_HOST,
+    port: process.env.DB_PORT || 443,
+    token: process.env.DB_PASSWORD,
+    path: process.env.DB_HTTP_PATH,
+    catalog: process.env.DB_CATALOG,
+    schema: process.env.DB_SCHEMA,
+    httpPath: process.env.DB_HTTP_PATH,
+    protocol: 'https',
+  };
+};
+
+const getPostgresConfig = (env = 'development') => {
+  const isTest = env === 'test';
+  const prefix = isTest ? 'TEST_' : '';
+  
+  return {
+    host: process.env[`${prefix}DB_HOST`] || 'localhost',
+    port: process.env[`${prefix}DB_PORT`] || 5432,
+    user: process.env[`${prefix}DB_USER`] || 'postgres',
+    password: process.env[`${prefix}DB_PASSWORD`] || 'postgres',
+    database: process.env[`${prefix}DB_NAME`] || (isTest ? 'financial_test_db' : 'financial_db'),
+    ...(env === 'production' ? { ssl: { rejectUnauthorized: false } } : {})
+  };
+};
+
 module.exports = {
   development: {
-    client: 'pg',
-    connection: {
-      host: process.env.DB_HOST || 'localhost',
-      port: process.env.DB_PORT || 5432,
-      user: process.env.DB_USER || 'postgres',
-      password: process.env.DB_PASSWORD || 'postgres',
-      database: process.env.DB_NAME || 'financial_db',
-    },
+    client: process.env.DB_DRIVER === 'databricks' ? 'databricks-sql-node' : 'pg',
+    connection: process.env.DB_DRIVER === 'databricks' 
+      ? getDatabricksConfig() 
+      : getPostgresConfig('development'),
     pool: {
       min: 2,
       max: 10
@@ -26,13 +53,7 @@ module.exports = {
 
   test: {
     client: 'pg',
-    connection: {
-      host: process.env.TEST_DB_HOST || 'localhost',
-      port: process.env.TEST_DB_PORT || 5432,
-      user: process.env.TEST_DB_USER || 'postgres',
-      password: process.env.TEST_DB_PASSWORD || 'postgres',
-      database: process.env.TEST_DB_NAME || 'financial_test_db',
-    },
+    connection: getPostgresConfig('test'),
     pool: {
       min: 2,
       max: 10
@@ -47,15 +68,10 @@ module.exports = {
   },
 
   production: {
-    client: 'pg',
-    connection: {
-      host: process.env.DB_HOST,
-      port: process.env.DB_PORT || 5432,
-      user: process.env.DB_USER,
-      password: process.env.DB_PASSWORD,
-      database: process.env.DB_NAME,
-      ssl: { rejectUnauthorized: false }
-    },
+    client: process.env.DB_DRIVER === 'databricks' ? 'databricks-sql-node' : 'pg',
+    connection: process.env.DB_DRIVER === 'databricks' 
+      ? getDatabricksConfig() 
+      : getPostgresConfig('production'),
     pool: {
       min: 2,
       max: 10
