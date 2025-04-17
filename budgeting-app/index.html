@@ -1,6 +1,42 @@
 <!doctype html>
+
 <html lang="en">
+
   <head>
+    <script>
+      // Enhanced Buffer polyfill
+      (function() {
+        if (typeof window.Buffer === 'undefined') {
+          window.Buffer = {
+            from: function(data, encoding) {
+              if (typeof data === 'string') {
+                var encoder = new TextEncoder();
+                return encoder.encode(data);
+              }
+              return new Uint8Array(Array.isArray(data) ? data : []);
+            },
+            alloc: function(size) {
+              return new Uint8Array(size);
+            },
+            isBuffer: function(obj) {
+              return obj instanceof Uint8Array;
+            }
+          };
+        }
+        
+        // Ensure global is defined
+        window.global = window.global || window;
+        
+        // Process polyfill
+        window.process = window.process || {
+          env: {},
+          browser: true,
+          version: '',
+          versions: {},
+          nextTick: function(fn) { setTimeout(fn, 0); }
+        };
+      })();
+    </script>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="./farm-icon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -12,5 +48,6 @@
   <body>
     <div id="root"></div>
     <script type="module" src="./src/main.tsx"></script>
+
   </body>
 </html>

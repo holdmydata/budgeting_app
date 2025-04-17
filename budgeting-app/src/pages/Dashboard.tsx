@@ -22,8 +22,8 @@ import {
   Pie,
   Cell
 } from 'recharts';
-import { useData } from '../context/DataContext';
 import { KPI } from '../types/data';
+import { dataService } from '../services/dataService';
 
 // Card background colors
 const CARD_COLORS = [
@@ -48,11 +48,9 @@ const ChartContainer = styled(Box)({
 
 export const Dashboard: React.FC = () => {
   const theme = useTheme();
-  const { fetchDashboardKPIs } = useData();
   const [kpis, setKpis] = useState<KPI[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [retryCount, setRetryCount] = useState(0);
-  const MAX_RETRIES = 2;
+  const [error, setError] = useState<string | null>(null);
 
   // Mock data for charts
   const mockYieldData = [
@@ -96,41 +94,35 @@ export const Dashboard: React.FC = () => {
     }).format(value);
   };
 
-  // Load KPIs from API
+  // Load KPIs from data service
   useEffect(() => {
     console.log("Dashboard component mounted - attempting to load KPIs");
     
     const loadKPIs = async () => {
       try {
         setIsLoading(true);
+        setError(null);
         console.log("Fetching KPIs...");
-        const data = await fetchDashboardKPIs();
+        
+        const data = await dataService.fetchKPIs();
         
         if (data && data.length > 0) {
           console.log("KPI data received:", data);
           setKpis(data);
         } else {
-          console.log("No KPI data received, using mock data");
-          // Fallback to mock KPIs if needed
-          import('../services/mockData').then(({ mockKPIs }) => {
-            setKpis(mockKPIs);
-            console.log("Using mock KPIs:", mockKPIs);
-          });
+          console.log("No KPI data received");
+          setError("No KPI data available");
         }
-      } catch (error) {
-        console.error("Error loading KPIs:", error);
-        // Fallback to mock KPIs on error
-        import('../services/mockData').then(({ mockKPIs }) => {
-          setKpis(mockKPIs);
-          console.log("Using mock KPIs due to error:", mockKPIs);
-        });
+      } catch (err) {
+        console.error("Error loading KPIs:", err);
+        setError("Failed to load KPI data");
       } finally {
         setIsLoading(false);
       }
     };
 
     loadKPIs();
-  }, [fetchDashboardKPIs]);
+  }, []);
 
   // Function to render KPI cards
   const renderKpiCards = () => {
@@ -138,6 +130,14 @@ export const Dashboard: React.FC = () => {
       return (
         <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 150 }}>
           <CircularProgress />
+        </Box>
+      );
+    }
+
+    if (error) {
+      return (
+        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 150 }}>
+          <Typography color="error">{error}</Typography>
         </Box>
       );
     }

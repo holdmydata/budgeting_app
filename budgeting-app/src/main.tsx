@@ -1,3 +1,27 @@
+// Proper Buffer polyfill for browser environments
+if (typeof window !== 'undefined' && typeof window.Buffer === 'undefined') {
+  // Import the buffer package if available, otherwise create a minimal polyfill
+  try {
+    window.Buffer = window.Buffer || require('buffer').Buffer;
+  } catch (e) {
+    window.Buffer = {
+      from: (data: any, encoding?: string) => {
+        // Basic implementation for compatibility
+        if (typeof data === 'string') {
+          const encoder = new TextEncoder();
+          return encoder.encode(data);
+        }
+        return new Uint8Array(data);
+      },
+      alloc: (size: number) => new Uint8Array(size),
+      isBuffer: (obj: any) => obj instanceof Uint8Array
+    };
+  }
+}
+
+// Import polyfills first
+// No longer needed with the server-middleware architecture
+
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App.tsx'

@@ -10,6 +10,7 @@ import { Help } from './pages/Help';
 import { GLAccounts } from './pages/GLAccounts';
 import Expenses from './pages/Expenses';
 import Vendors from './pages/Vendors';
+import DataSourceConfig from './components/DataSourceConfig';
 import { Suspense, useEffect } from 'react';
 
 // Simple placeholder components for settings and profile pages
@@ -119,6 +120,7 @@ function App() {
                 <Route path="gl-accounts" element={<Layout><GLAccounts /></Layout>} />
                 <Route path="expenses" element={<Layout><Expenses /></Layout>} />
                 <Route path="vendors" element={<Layout><Vendors /></Layout>} />
+                <Route path="data-source" element={<Layout><DataSourceConfig /></Layout>} />
                 
                 {/* Catch all - redirect to dashboard */}
                 <Route path="*" element={<Navigate to="/" replace />} />

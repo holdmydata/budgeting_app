@@ -1,0 +1,131 @@
+# Get a single transaction by ID
+query GetTransaction {
+  transaction(transactionID: "ABC123") {
+    transactionID
+    recid
+    accountnum
+    transdate
+    txt
+    amountcur
+    debitCreditFlag
+    runningBalance
+    accountStatus
+  }
+}
+
+# Get transactions for a specific account with date range
+query GetAccountTransactions {
+  transactions(
+    accountnum: "1234567"
+    startDate: "2023-01-01"
+    endDate: "2023-12-31"
+    limit: 10
+  ) {
+    transactionID
+    transdate
+    txt
+    amountcur
+    debitCreditFlag
+  }
+}
+
+# Get account details with transaction history
+query GetAccountWithTransactions {
+  account(accountnum: "1234567") {
+    accountnum
+    name
+    type
+    balance
+    transactions(limit: 5) {
+      transactionID
+      transdate
+      txt
+      amountcur
+    }
+  }
+}
+
+# Get period summaries for an account
+query GetAccountPeriodSummaries {
+  account(accountnum: "1234567") {
+    accountnum
+    name
+    periodSummaries(period: MONTHLY) {
+      period
+      startDate
+      endDate
+      totalAmount
+      transactionCount
+    }
+  }
+}
+
+# Get all budget entries for an account
+query GetBudgetEntries {
+  budgetEntries(accountnum: "1234567") {
+    id
+    accountnum
+    period
+    amount
+    description
+  }
+}
+
+# Create a new budget entry
+mutation CreateBudgetEntry {
+  createBudgetEntry(
+    accountnum: "1234567"
+    amount: 1000.00
+    period: "2023-Q4"
+    description: "Q4 Budget Allocation"
+  ) {
+    id
+    accountnum
+    amount
+    period
+    description
+  }
+}
+
+# Update an existing budget entry
+mutation UpdateBudgetEntry {
+  updateBudgetEntry(
+    id: "budget-123"
+    amount: 1250.00
+    description: "Updated Q4 Budget Allocation"
+  ) {
+    id
+    accountnum
+    amount
+    period
+    description
+  }
+}
+
+# Delete a budget entry
+mutation DeleteBudgetEntry {
+  deleteBudgetEntry(id: "budget-123")
+}
+
+# Complex query: Get account with transactions and period summaries
+query ComplexAccountQuery {
+  account(accountnum: "1234567") {
+    accountnum
+    name
+    type
+    balance
+    transactions(limit: 5) {
+      transactionID
+      transdate
+      txt
+      amountcur
+      debitCreditFlag
+      runningBalance
+    }
+    periodSummaries(period: QUARTERLY) {
+      period
+      totalAmount
+      transactionCount
+    }
+  }
+} 

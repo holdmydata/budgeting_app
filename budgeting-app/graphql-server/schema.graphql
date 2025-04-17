@@ -1,0 +1,91 @@
+type Transaction {
+  transactionID: ID!
+  recid: String!
+  transDateId: String!
+  docDateId: String!
+  accountnum: String!
+  journalnum: String!
+  voucher: String!
+  transdate: String!
+  documentdate: String!
+  txt: String
+  amountcur: Float!
+  debitCreditFlag: String!
+  
+  # Computed fields
+  runningBalance: Float
+  accountStatus: AccountStatus
+}
+
+enum AccountStatus {
+  ACTIVE
+  INACTIVE
+  OVERDUE
+  PENDING
+}
+
+type PeriodSummary {
+  period: String!
+  startDate: String!
+  endDate: String!
+  totalAmount: Float!
+  transactionCount: Int!
+}
+
+type Account {
+  accountnum: String!
+  name: String
+  type: String
+  balance: Float
+  transactions(limit: Int, offset: Int): [Transaction!]
+  periodSummaries(period: PeriodType!): [PeriodSummary!]
+}
+
+enum PeriodType {
+  MONTHLY
+  QUARTERLY
+  YEARLY
+}
+
+type BudgetEntry {
+  id: ID!
+  accountnum: String!
+  amount: Float!
+  period: String!
+  description: String
+}
+
+type Query {
+  transaction(transactionID: ID!): Transaction
+  transactions(
+    limit: Int
+    offset: Int
+    accountnum: String
+    startDate: String
+    endDate: String
+  ): [Transaction!]
+  
+  account(accountnum: String!): Account
+  accounts(limit: Int, offset: Int): [Account!]
+  
+  periodSummary(accountnum: String!, period: PeriodType!, date: String): PeriodSummary
+  
+  budgetEntries(accountnum: String!, period: String): [BudgetEntry!]
+}
+
+type Mutation {
+  createBudgetEntry(
+    accountnum: String!
+    amount: Float!
+    period: String!
+    description: String
+  ): BudgetEntry
+  
+  updateBudgetEntry(
+    id: ID!
+    amount: Float
+    description: String
+  ): BudgetEntry
+  
+  deleteBudgetEntry(id: ID!): Boolean
+} 

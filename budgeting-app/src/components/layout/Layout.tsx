@@ -23,6 +23,8 @@ import AssignmentIcon from '@mui/icons-material/Assignment';
 import BusinessIcon from '@mui/icons-material/Business';
 import ExitToAppIcon from '@mui/icons-material/ExitToApp';
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
+import SettingsIcon from '@mui/icons-material/Settings';
+import StorageIcon from '@mui/icons-material/Storage';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import Header from './Header';
@@ -222,6 +224,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     { text: 'Expenses', path: '/expenses', icon: <ReceiptIcon /> },
     { text: 'Projects', path: '/projects', icon: <AssignmentIcon /> },
     { text: 'Vendors', path: '/vendors', icon: <BusinessIcon /> },
+    { text: 'Data Source', path: '/data-source', icon: <StorageIcon /> },
     { text: 'Help & Resources', path: '/help', icon: <HelpOutlineIcon /> },
   ];
   

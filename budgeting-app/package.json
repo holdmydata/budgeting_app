@@ -11,6 +11,8 @@
     "build": "vite build",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
+    "server": "cd server && npm run dev",
+    "start": "concurrently \"npm run dev\" \"npm run server\"",
     "electron:dev": "cross-env NODE_ENV=development concurrently \"npm run dev\" \"electron .\"",
     "electron:build": "npm run build && electron-builder",
     "electron:preview": "npm run build && electron ."
@@ -26,10 +28,14 @@
     "@mui/material": "^5.15.10",
     "@tanstack/react-query": "^5.71.5",
     "axios": "^1.8.4",
+    "buffer": "^6.0.3",
+    "lz4": "^0.6.5",
+    "lz4js": "^0.2.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-router-dom": "^6.22.1",
-    "recharts": "^2.12.0"
+    "recharts": "^2.12.0",
+    "stream-browserify": "^3.0.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.21.0",

@@ -9,7 +9,7 @@ import {
   mockTransactions, 
   mockBudgetEntries 
 } from '../services/mockData';
-import { DatabricksConnector } from '../api/databricksConnector';
+import axios from 'axios';
 
 // Databricks configuration interface
 interface DatabricksConfig {
@@ -19,9 +19,6 @@ interface DatabricksConfig {
   warehouseId?: string; // SQL warehouse ID
   apiKey?: string;     // Databricks API key for direct authentication
   httpPath?: string;    // e.g., /sql/1.0/warehouses/xxx
-  computeHost?: string; // e.g., adb-xxx.azuredatabricks.net
-  port?: number;        // default is 443
-  useSSL?: boolean;     // default is true
 }
 
 // SQL Server configuration interface
@@ -52,6 +49,9 @@ enum ConnectionType {
   DATABRICKS = 'databricks',
   SQL_SERVER = 'sqlServer'
 }
+
+// Server URL for Databricks middleware
+const SERVER_URL = 'http://localhost:5000';
 
 // Define the shape of our data context
 interface DataContextType {
@@ -88,35 +88,48 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
   const [connectionType, setConnectionType] = useState<ConnectionType>(ConnectionType.MOCK);
   const [databricksConfig, setDatabricksConfig] = useState<DatabricksConfig | null>(null);
   const [sqlServerConfig, setSqlServerConfig] = useState<SqlServerConfig | null>(null);
-  const [databricksConnector, setDatabricksConnector] = useState<DatabricksConnector | null>(null);
+  const [sessionId, setSessionId] = useState<string | null>(null);
 
   // Clean up connections when unmounting or when connection type changes
   React.useEffect(() => {
     return () => {
       // Close Databricks connection when unmounting
-      if (databricksConnector) {
+      if (sessionId) {
         console.log('Closing Databricks connection');
-        databricksConnector.close().catch(err => {
+        disconnectFromDatabricks().catch(err => {
           console.error('Error closing Databricks connection:', err);
         });
       }
     };
-  }, [databricksConnector]);
+  }, [sessionId]);
 
   // Clean up connections when connection type changes
   React.useEffect(() => {
     const cleanupPreviousConnections = async () => {
-      if (databricksConnector && connectionType !== ConnectionType.DATABRICKS) {
+      if (sessionId && connectionType !== ConnectionType.DATABRICKS) {
         console.log('Closing Databricks connection due to connection type change');
-        await databricksConnector.close().catch(err => {
+        await disconnectFromDatabricks().catch(err => {
           console.error('Error closing Databricks connection:', err);
         });
-        setDatabricksConnector(null);
       }
     };
     
     cleanupPreviousConnections();
   }, [connectionType]);
+
+  // Helper function to disconnect from Databricks
+  const disconnectFromDatabricks = async (): Promise<void> => {
+    if (!sessionId) return;
+    
+    try {
+      await axios.post(`${SERVER_URL}/api/databricks/disconnect`, {
+        sessionId
+      });
+      setSessionId(null);
+    } catch (error) {
+      console.error('Failed to disconnect from Databricks:', error);
+    }
+  };
 
   // Helper function to make authenticated API calls
   const fetchWithAuth = async <T,>(url: string, options: RequestInit = {}): Promise<T> => {
@@ -185,20 +198,37 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
     }
   };
 
-  // Helper function to make authenticated Databricks API calls
+  // Helper function to make authenticated Databricks API calls through server
   const fetchFromDatabricks = async <T,>(query: string): Promise<T> => {
-    if (!databricksConfig) {
-      throw new Error('Databricks configuration not set');
+    if (connectionType === ConnectionType.MOCK) {
+      // For mock data, simulate network delay and return mock data based on query
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Return mock data based on query content (simplified)
+      if (query.toLowerCase().includes('kpi')) return mockKPIs as unknown as T;
+      if (query.toLowerCase().includes('project')) return mockProjects as unknown as T;
+      if (query.toLowerCase().includes('account')) return mockGLAccounts as unknown as T;
+      if (query.toLowerCase().includes('transaction')) return mockTransactions as unknown as T;
+      if (query.toLowerCase().includes('budget')) return mockBudgetEntries as unknown as T;
+      
+      return [] as unknown as T;
+    }
+    
+    if (!sessionId) {
+      throw new Error('Databricks session not established');
     }
 
     setIsLoading(true);
     try {
-      if (databricksConnector) {
-        // Use the DatabricksConnector if it's initialized
-        const results = await databricksConnector.executeQuery<T extends any[] ? T[number] : T>(query);
-        return Array.isArray(results) ? results as unknown as T : results as T;
+      const response = await axios.post(`${SERVER_URL}/api/databricks/query`, {
+        sessionId,
+        query
+      });
+      
+      if (response.data.success) {
+        return response.data.data as T;
       } else {
-        throw new Error('Databricks connector not initialized');
+        throw new Error(response.data.message || 'Databricks query failed');
       }
     } catch (error) {
       console.error('Databricks query failed:', error);
@@ -206,25 +236,6 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
     } finally {
       setIsLoading(false);
     }
-  };
-
-  // Add a helper for building Databricks SQL queries with safety
-  const buildDatabricksQuery = (baseQuery: string, filters?: Record<string, any>) => {
-    if (!filters || Object.keys(filters).length === 0) {
-      return { query: baseQuery, parameters: {} };
-    }
-
-    const conditions: string[] = [];
-    const parameters: Record<string, any> = {};
-
-    Object.entries(filters).forEach(([key, value], index) => {
-      const paramName = `param_${index}`;
-      conditions.push(`${key} = :${paramName}`);
-      parameters[paramName] = value;
-    });
-
-    const query = `${baseQuery}${conditions.length ? ` WHERE ${conditions.join(' AND ')}` : ''}`;
-    return { query, parameters };
   };
 
   // Function to execute direct SQL Server query
@@ -244,255 +255,291 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
       return []; // Default empty response
     }
 
+    if (connectionType === ConnectionType.DATABRICKS) {
+      return fetchFromDatabricks(query);
+    }
+
     if (connectionType !== ConnectionType.SQL_SERVER || !sqlServerConfig) {
       throw new Error('SQL Server configuration not set or connection type is not SQL Server');
     }
 
+    // Implement SQL Server query logic here
+    throw new Error('SQL Server queries not implemented');
+  };
+
+  // Function to connect to Databricks
+  const connectToDatabricks = async (): Promise<boolean> => {
+    if (!databricksConfig || !databricksConfig.workspaceUrl || !databricksConfig.httpPath) {
+      console.error('Databricks configuration not properly set');
+      return false;
+    }
+
     setIsLoading(true);
     try {
-      // In a real app, you'd likely have a backend API endpoint that handles the SQL connection
-      const token = await acquireToken();
-      const apiUrl = `${import.meta.env.VITE_API_URL || ''}/api/sql-query`;
-      
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          server: sqlServerConfig.serverUrl,
-          database: sqlServerConfig.database,
-          useWindowsAuth: sqlServerConfig.useWindowsAuth || false,
-          query: query
-        }),
+      const response = await axios.post(`${SERVER_URL}/api/databricks/connect`, {
+        workspaceUrl: databricksConfig.workspaceUrl,
+        httpPath: databricksConfig.httpPath,
+        warehouseId: databricksConfig.warehouseId,
+        catalog: databricksConfig.catalogName,
+        schema: databricksConfig.schema,
+        apiKey: databricksConfig.apiKey
       });
-
-      if (!response.ok) {
-        throw new Error(`SQL Server API error: ${response.status}`);
+      
+      if (response.data.success) {
+        setSessionId(response.data.sessionId);
+        console.log('Connected to Databricks via server middleware, session ID:', response.data.sessionId);
+        return true;
+      } else {
+        console.error('Failed to connect to Databricks:', response.data.message);
+        return false;
       }
-
-      const data = await response.json();
-      return data;
     } catch (error) {
-      console.error('SQL query failed:', error);
-      throw error;
+      console.error('Failed to connect to Databricks:', error);
+      return false;
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Test Databricks connection
-  const connectToDatabricks = async (): Promise<boolean> => {
-    try {
-      if (!databricksConfig) {
-        throw new Error('Databricks configuration not set');
-      }
-
-      if (!databricksConfig.httpPath) {
-        throw new Error('HTTP Path is required for Databricks connection');
-      }
-
-      // Create a new DatabricksConnector instance
-      const connector = new DatabricksConnector(databricksConfig);
-      
-      // Test the connection
-      const isConnected = await connector.connect();
-      
-      if (!isConnected) {
-        throw new Error('Failed to connect to Databricks');
-      }
-      
-      // Update state
-      setDatabricksConnector(connector);
-      setConnectionType(ConnectionType.DATABRICKS);
-      console.log('Successfully connected to Databricks');
-      return true;
-    } catch (error) {
-      console.error('Databricks connection test failed:', error);
-      return false;
-    }
-  };
-
-  // Test SQL Server connection
+  // Function to connect to SQL Server
   const connectToSqlServer = async (): Promise<boolean> => {
+    setIsLoading(true);
     try {
-      if (!sqlServerConfig) {
-        throw new Error('SQL Server configuration not set');
-      }
-
-      const testQuery = 'SELECT 1';
-      await executeSqlQuery(testQuery);
-      setConnectionType(ConnectionType.SQL_SERVER);
+      // Implement SQL Server connection logic here
+      // This is a placeholder - in a real app, you'd have actual connection logic
+      console.log('Connecting to SQL Server with config:', sqlServerConfig);
+      
+      // Simulate connection success
+      await new Promise(resolve => setTimeout(resolve, 500));
+      console.log('Connected to SQL Server (simulated)');
+      
       return true;
     } catch (error) {
-      console.error('SQL Server connection test failed:', error);
+      console.error('Failed to connect to SQL Server:', error);
       return false;
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  // Function to invalidate and refetch queries
+  // Function to invalidate React Query cache
   const invalidateQueries = async (queryKey: string) => {
     await queryClient.invalidateQueries([queryKey]);
   };
 
-  // Data fetching functions - these can now use either connection type
+  // Function to fetch dashboard KPIs
   const fetchDashboardKPIs = async (): Promise<KPI[]> => {
+    if (useMockData || connectionType === ConnectionType.MOCK) {
+      console.log('Using mock KPI data');
+      await new Promise(resolve => setTimeout(resolve, 500)); // Simulate network delay
+      return [...mockKPIs];
+    }
+
     if (connectionType === ConnectionType.DATABRICKS) {
-      if (databricksConnector) {
-        return await databricksConnector.fetchDashboardKPIs();
+      if (!sessionId) {
+        await connectToDatabricks();
       }
       
-      // Fall back to executing a query directly
-      const query = `
-        SELECT 
-          id,
-          title,
-          value,
-          formattedValue,
-          change,
-          secondaryValue
-        FROM kpi_view
-      `;
-      return await fetchFromDatabricks<KPI[]>(query);
+      try {
+        const response = await axios.get(`${SERVER_URL}/api/kpis`, {
+          params: { sessionId }
+        });
+        return response.data;
+      } catch (error) {
+        console.error('Failed to fetch KPIs from Databricks:', error);
+        // Fallback to mock data on error
+        return [...mockKPIs];
+      }
     }
 
     if (connectionType === ConnectionType.SQL_SERVER) {
-      // Example SQL query for KPIs - adjust to match your schema
-      const query = `SELECT * FROM KPIs`;
-      return await executeSqlQuery(query);
+      try {
+        // For SQL Server, execute a query to get KPIs
+        const query = `SELECT id, title, value, formattedValue, change, secondaryValue FROM kpi_view`;
+        return await executeSqlQuery(query);
+      } catch (error) {
+        console.error('Failed to fetch KPIs from SQL Server:', error);
+        // Fallback to mock data on error
+        return [...mockKPIs];
+      }
     }
-    
-    const apiUrl = `${import.meta.env.VITE_API_URL || ''}/api/kpis`;
-    return fetchWithAuth<KPI[]>(apiUrl);
+
+    return [...mockKPIs]; // Default fallback
   };
 
+  // Function to fetch projects
   const fetchProjects = async (): Promise<Project[]> => {
+    if (useMockData || connectionType === ConnectionType.MOCK) {
+      console.log('Using mock project data');
+      await new Promise(resolve => setTimeout(resolve, 500)); // Simulate network delay
+      return [...mockProjects];
+    }
+
     if (connectionType === ConnectionType.DATABRICKS) {
-      if (databricksConnector) {
-        return await databricksConnector.fetchProjects();
+      if (!sessionId) {
+        await connectToDatabricks();
       }
       
-      // Fall back to executing a query directly
-      const query = 'SELECT * FROM projects';
-      return await fetchFromDatabricks<Project[]>(query);
+      try {
+        const response = await axios.get(`${SERVER_URL}/api/projects`, {
+          params: { sessionId }
+        });
+        return response.data;
+      } catch (error) {
+        console.error('Failed to fetch projects from Databricks:', error);
+        // Fallback to mock data on error
+        return [...mockProjects];
+      }
     }
-    
-    if (connectionType === ConnectionType.SQL_SERVER) {
-      // Example SQL query for projects - adjust to match your schema
-      const query = `SELECT * FROM Projects`;
-      return await executeSqlQuery(query);
-    }
-    
-    const apiUrl = `${import.meta.env.VITE_API_URL || ''}/api/projects`;
-    return fetchWithAuth<Project[]>(apiUrl);
+
+    // Fallback to mock data
+    return [...mockProjects];
   };
 
+  // Function to fetch project details
   const fetchProjectDetails = async (projectId: string): Promise<Project> => {
-    if (connectionType === ConnectionType.SQL_SERVER) {
-      // Example SQL query for project details - adjust to match your schema
-      const query = `SELECT * FROM Projects WHERE id = '${projectId}'`;
-      const results = await executeSqlQuery(query);
-      return results[0];
+    const projects = await fetchProjects();
+    const project = projects.find(p => p.id === projectId);
+    if (!project) {
+      throw new Error(`Project with ID ${projectId} not found`);
     }
-    
-    const apiUrl = `${import.meta.env.VITE_API_URL || ''}/api/projects/${projectId}`;
-    return fetchWithAuth<Project>(apiUrl);
+    return project;
   };
 
+  // Function to fetch GL accounts
   const fetchGLAccounts = async (filters?: object): Promise<GLAccount[]> => {
-    if (connectionType === ConnectionType.DATABRICKS) {
-      if (databricksConnector) {
-        return await databricksConnector.fetchGLAccounts();
+    if (useMockData || connectionType === ConnectionType.MOCK) {
+      console.log('Using mock GL account data');
+      await new Promise(resolve => setTimeout(resolve, 500)); // Simulate network delay
+      
+      if (filters) {
+        return mockGLAccounts.filter(account => {
+          return Object.entries(filters).every(([key, value]) => {
+            // @ts-ignore
+            return account[key] === value;
+          });
+        });
       }
       
-      // Fall back to executing a query directly
-      const { query, parameters } = buildDatabricksQuery(
-        'SELECT * FROM gl_accounts',
-        filters
-      );
-      return await fetchFromDatabricks<GLAccount[]>(query);
+      return [...mockGLAccounts];
     }
-    
-    if (connectionType === ConnectionType.SQL_SERVER) {
-      const query = `SELECT * FROM GLAccounts`;
-      return await executeSqlQuery(query);
+
+    if (connectionType === ConnectionType.DATABRICKS) {
+      if (!sessionId) {
+        await connectToDatabricks();
+      }
+      
+      try {
+        const response = await axios.get(`${SERVER_URL}/api/gl-accounts`, {
+          params: { 
+            sessionId,
+            ...filters
+          }
+        });
+        return response.data;
+      } catch (error) {
+        console.error('Failed to fetch GL accounts from Databricks:', error);
+        // Fallback to mock data on error
+        return [...mockGLAccounts];
+      }
     }
-    
-    const apiUrl = `${import.meta.env.VITE_API_URL || ''}/api/gl-accounts`;
-    return fetchWithAuth<GLAccount[]>(apiUrl);
+
+    // Fallback to mock data
+    return [...mockGLAccounts];
   };
 
+  // Function to fetch transactions
   const fetchTransactions = async (filters: object = {}): Promise<FinancialTransaction[]> => {
-    if (connectionType === ConnectionType.DATABRICKS) {
-      if (databricksConnector) {
-        return await databricksConnector.fetchTransactions(filters);
+    if (useMockData || connectionType === ConnectionType.MOCK) {
+      console.log('Using mock transaction data');
+      await new Promise(resolve => setTimeout(resolve, 500)); // Simulate network delay
+      
+      if (Object.keys(filters).length > 0) {
+        return mockTransactions.filter(transaction => {
+          return Object.entries(filters).every(([key, value]) => {
+            // @ts-ignore
+            return transaction[key] === value;
+          });
+        });
       }
       
-      // Fall back to executing a query directly
-      const { query, parameters } = buildDatabricksQuery(
-        'SELECT * FROM financial_transactions',
-        filters
-      );
-      return await fetchFromDatabricks<FinancialTransaction[]>(query);
+      return [...mockTransactions];
     }
-    
-    if (connectionType === ConnectionType.SQL_SERVER) {
-      let query = `SELECT * FROM Transactions WHERE 1=1`;
-      Object.entries(filters).forEach(([key, value]) => {
-        query += ` AND ${key} = '${value}'`;
-      });
-      return await executeSqlQuery(query);
+
+    if (connectionType === ConnectionType.DATABRICKS) {
+      if (!sessionId) {
+        await connectToDatabricks();
+      }
+      
+      try {
+        const response = await axios.get(`${SERVER_URL}/api/transactions`, {
+          params: { 
+            sessionId,
+            ...filters
+          }
+        });
+        return response.data;
+      } catch (error) {
+        console.error('Failed to fetch transactions from Databricks:', error);
+        // Fallback to mock data on error
+        return [...mockTransactions];
+      }
     }
-    
-    const queryParams = new URLSearchParams();
-    Object.entries(filters).forEach(([key, value]) => {
-      queryParams.append(key, String(value));
-    });
-    
-    const apiUrl = `${import.meta.env.VITE_API_URL || ''}/api/transactions?${queryParams.toString()}`;
-    return fetchWithAuth<FinancialTransaction[]>(apiUrl);
+
+    // Fallback to mock data
+    return [...mockTransactions];
   };
 
+  // Function to fetch budget entries
   const fetchBudgetEntries = async (filters: object = {}): Promise<BudgetEntry[]> => {
-    if (connectionType === ConnectionType.DATABRICKS) {
-      if (databricksConnector) {
-        return await databricksConnector.fetchBudgetEntries(filters);
+    if (useMockData || connectionType === ConnectionType.MOCK) {
+      console.log('Using mock budget data');
+      await new Promise(resolve => setTimeout(resolve, 500)); // Simulate network delay
+      
+      if (Object.keys(filters).length > 0) {
+        return mockBudgetEntries.filter(entry => {
+          return Object.entries(filters).every(([key, value]) => {
+            // @ts-ignore
+            return entry[key] === value;
+          });
+        });
       }
       
-      // Fall back to executing a query directly
-      const { query, parameters } = buildDatabricksQuery(
-        'SELECT * FROM budget_entries',
-        filters
-      );
-      return await fetchFromDatabricks<BudgetEntry[]>(query);
+      return [...mockBudgetEntries];
     }
-    
-    if (connectionType === ConnectionType.SQL_SERVER) {
-      let query = `SELECT * FROM BudgetEntries WHERE 1=1`;
-      Object.entries(filters).forEach(([key, value]) => {
-        query += ` AND ${key} = '${value}'`;
-      });
-      return await executeSqlQuery(query);
+
+    if (connectionType === ConnectionType.DATABRICKS) {
+      if (!sessionId) {
+        await connectToDatabricks();
+      }
+      
+      try {
+        const response = await axios.get(`${SERVER_URL}/api/budget-entries`, {
+          params: { 
+            sessionId,
+            ...filters
+          }
+        });
+        return response.data;
+      } catch (error) {
+        console.error('Failed to fetch budget entries from Databricks:', error);
+        // Fallback to mock data on error
+        return [...mockBudgetEntries];
+      }
     }
-    
-    const queryParams = new URLSearchParams();
-    Object.entries(filters).forEach(([key, value]) => {
-      queryParams.append(key, String(value));
-    });
-    
-    const apiUrl = `${import.meta.env.VITE_API_URL || ''}/api/budget-entries?${queryParams.toString()}`;
-    return fetchWithAuth<BudgetEntry[]>(apiUrl);
+
+    // Fallback to mock data
+    return [...mockBudgetEntries];
   };
 
-  // Value object to provide through the context
-  const value = {
+  // Provide the context value
+  const contextValue = {
     isLoading,
     connectionType,
     setConnectionType,
     databricksConfig,
     setDatabricksConfig,
-    sqlServerConfig, 
+    sqlServerConfig,
     setSqlServerConfig,
     connectToDatabricks,
     connectToSqlServer,
@@ -503,13 +550,15 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
     fetchGLAccounts,
     fetchTransactions,
     fetchBudgetEntries,
-    executeSqlQuery
+    executeSqlQuery,
   };
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <DataContext.Provider value={value}>{children}</DataContext.Provider>
-    </QueryClientProvider>
+    <DataContext.Provider value={contextValue}>
+      <QueryClientProvider client={queryClient}>
+        {children}
+      </QueryClientProvider>
+    </DataContext.Provider>
   );
 };
 

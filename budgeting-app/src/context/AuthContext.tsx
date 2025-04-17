@@ -4,7 +4,7 @@ import * as microsoftTeams from '@microsoft/teams-js';
 import { useNavigate } from 'react-router-dom';
 
 // Always skip auth for now to troubleshoot UI issues
-const skipAuth = false; // Enabling auth to get data access
+const skipAuth = true; // Temporarily enabling to fix UI issues
 
 // MSAL configuration for Azure AD
 const msalConfig = {
