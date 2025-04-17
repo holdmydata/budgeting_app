@@ -57,7 +57,7 @@ const DataSourceConfig: React.FC = () => {
     const envSchema = import.meta.env.VITE_DATABRICKS_SCHEMA;
     const envApiKey = import.meta.env.VITE_DATABRICKS_API_KEY;
     const envApiUrl = import.meta.env.VITE_API_URL;
-    const envGraphqlUrl = import.meta.env.VITE_GRAPHQL_URL || 'http://localhost:4000';
+    const envGraphqlUrl = import.meta.env.VITE_GRAPHQL_URL || 'http://localhost:5000/graphql';
     
     // Check if we have enough env vars to use Databricks
     if (envWorkspaceUrl && envHttpPath) {
