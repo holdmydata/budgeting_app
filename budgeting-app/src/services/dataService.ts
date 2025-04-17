@@ -47,7 +47,8 @@ export class DataService {
   private static instance: DataService;
   private config: DataConfig;
   private sessionId: string | null = null;
-  private serverUrl: string = 'http://localhost:5000';
+  private serverUrl: string = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+  private graphqlUrl: string = import.meta.env.VITE_GRAPHQL_URL || 'http://localhost:4000';
 
   // Private constructor for singleton pattern
   private constructor(config: DataConfig) {

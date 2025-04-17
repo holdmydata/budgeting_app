@@ -115,11 +115,15 @@ export default defineConfig({
   server: {
     port: 5173,
     headers: {
-      'Content-Security-Policy': "default-src 'self' blob: data: https:; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' ws: https://res.cdn.office.net; worker-src 'self' blob:;"
+      'Content-Security-Policy': "default-src 'self' blob: data: https:; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' ws: http://localhost:5000 http://localhost:4000 https://res.cdn.office.net; worker-src 'self' blob:;"
     },
     proxy: {
       '/api': {
         target: 'http://localhost:5000',
+        changeOrigin: true,
+      },
+      '/graphql': {
+        target: 'http://localhost:4000',
         changeOrigin: true,
       }
     }
