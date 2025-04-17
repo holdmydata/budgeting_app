@@ -36,6 +36,9 @@ const DataSourceConfig: React.FC = () => {
   const [baseUrl, setBaseUrl] = useState('');
   const [apiHeaders, setApiHeaders] = useState('');
   
+  // GraphQL config
+  const [graphqlUrl, setGraphqlUrl] = useState('');
+  
   // Mock config
   const [mockDelay, setMockDelay] = useState(500);
   
@@ -46,41 +49,81 @@ const DataSourceConfig: React.FC = () => {
   
   // Load current configuration
   useEffect(() => {
-    // In a real app, you might load the config from localStorage or a backend service
-    try {
-      const savedConfig = localStorage.getItem('dataSourceConfig');
-      if (savedConfig) {
-        const config = JSON.parse(savedConfig) as DataConfig;
-        
-        // Update state based on the config type
-        setDataSourceType(config.type);
-        
-        switch (config.type) {
-          case DataSourceType.DATABRICKS:
-            setWorkspaceUrl(config.workspaceUrl || '');
-            setWarehouseId(config.warehouseId || '');
-            setHttpPath(config.httpPath || '');
-            setCatalog(config.catalog || '');
-            setSchema(config.schema || '');
-            setApiKey(config.apiKey || '');
-            break;
-            
-          case DataSourceType.API:
-            setBaseUrl(config.baseUrl || '');
-            setApiHeaders(JSON.stringify(config.headers || {}, null, 2));
-            if (config.apiKey) setApiKey(config.apiKey);
-            break;
-            
-          case DataSourceType.MOCK:
-            if ('delayMs' in config) {
-              setMockDelay(config.delayMs || 500);
-            }
-            break;
+    // First try to load from environment variables
+    const envWorkspaceUrl = import.meta.env.VITE_DATABRICKS_WORKSPACE_URL;
+    const envWarehouseId = import.meta.env.VITE_DATABRICKS_WAREHOUSE_ID;
+    const envHttpPath = import.meta.env.VITE_DATABRICKS_HTTP_PATH;
+    const envCatalog = import.meta.env.VITE_DATABRICKS_CATALOG_NAME;
+    const envSchema = import.meta.env.VITE_DATABRICKS_SCHEMA;
+    const envApiKey = import.meta.env.VITE_DATABRICKS_API_KEY;
+    const envApiUrl = import.meta.env.VITE_API_URL;
+    const envGraphqlUrl = import.meta.env.VITE_GRAPHQL_URL || 'http://localhost:4000';
+    
+    // Check if we have enough env vars to use Databricks
+    if (envWorkspaceUrl && envHttpPath) {
+      setDataSourceType(DataSourceType.DATABRICKS);
+      setWorkspaceUrl(envWorkspaceUrl || '');
+      setWarehouseId(envWarehouseId || '');
+      setHttpPath(envHttpPath || '');
+      setCatalog(envCatalog || '');
+      setSchema(envSchema || '');
+      setApiKey(envApiKey || '');
+      
+      // Save this configuration automatically
+      setTimeout(() => {
+        handleSave();
+      }, 0);
+    } 
+    // Check if we have API URL
+    else if (envApiUrl) {
+      setDataSourceType(DataSourceType.API);
+      setBaseUrl(envApiUrl);
+      
+      // Save this configuration automatically
+      setTimeout(() => {
+        handleSave();
+      }, 0);
+    } 
+    // Otherwise try to load from localStorage
+    else {
+      try {
+        const savedConfig = localStorage.getItem('dataSourceConfig');
+        if (savedConfig) {
+          const config = JSON.parse(savedConfig) as DataConfig;
+          
+          // Update state based on the config type
+          setDataSourceType(config.type);
+          
+          switch (config.type) {
+            case DataSourceType.DATABRICKS:
+              setWorkspaceUrl(config.workspaceUrl || '');
+              setWarehouseId(config.warehouseId || '');
+              setHttpPath(config.httpPath || '');
+              setCatalog(config.catalog || '');
+              setSchema(config.schema || '');
+              setApiKey(config.apiKey || '');
+              break;
+              
+            case DataSourceType.API:
+              setBaseUrl(config.baseUrl || '');
+              setApiHeaders(JSON.stringify(config.headers || {}, null, 2));
+              if (config.apiKey) setApiKey(config.apiKey);
+              break;
+              
+            case DataSourceType.MOCK:
+              if ('delayMs' in config) {
+                setMockDelay(config.delayMs || 500);
+              }
+              break;
+          }
         }
+      } catch (error) {
+        console.error('Error loading saved configuration:', error);
       }
-    } catch (error) {
-      console.error('Error loading saved configuration:', error);
     }
+    
+    // Set GraphQL URL
+    setGraphqlUrl(envGraphqlUrl);
   }, []);
   
   // Create configuration object based on the selected data source type
@@ -227,6 +270,24 @@ const DataSourceConfig: React.FC = () => {
               </FormControl>
             </Grid>
             
+            {/* GraphQL Configuration (read-only) */}
+            <Grid item xs={12}>
+              <Divider>GraphQL API Configuration</Divider>
+            </Grid>
+            
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                id="graphql-url"
+                label="GraphQL API URL"
+                variant="outlined"
+                value={graphqlUrl}
+                onChange={(e) => setGraphqlUrl(e.target.value)}
+                helperText="GraphQL API URL (configured via VITE_GRAPHQL_URL env variable)"
+                disabled={!!import.meta.env.VITE_GRAPHQL_URL}
+              />
+            </Grid>
+            
             {/* Databricks Configuration */}
             {dataSourceType === DataSourceType.DATABRICKS && (
               <>
@@ -245,6 +306,7 @@ const DataSourceConfig: React.FC = () => {
                     onChange={(e) => setWorkspaceUrl(e.target.value)}
                     helperText="The URL of your Databricks workspace"
                     required
+                    disabled={!!import.meta.env.VITE_DATABRICKS_WORKSPACE_URL}
                   />
                 </Grid>
                 
@@ -259,6 +321,7 @@ const DataSourceConfig: React.FC = () => {
                     onChange={(e) => setWarehouseId(e.target.value)}
                     helperText="The ID of your SQL warehouse"
                     required
+                    disabled={!!import.meta.env.VITE_DATABRICKS_WAREHOUSE_ID}
                   />
                 </Grid>
                 
@@ -273,6 +336,7 @@ const DataSourceConfig: React.FC = () => {
                     onChange={(e) => setHttpPath(e.target.value)}
                     helperText="The HTTP path for SQL warehouse"
                     required
+                    disabled={!!import.meta.env.VITE_DATABRICKS_HTTP_PATH}
                   />
                 </Grid>
                 
@@ -286,6 +350,7 @@ const DataSourceConfig: React.FC = () => {
                     value={catalog}
                     onChange={(e) => setCatalog(e.target.value)}
                     helperText="The catalog to use (e.g., hive_metastore)"
+                    disabled={!!import.meta.env.VITE_DATABRICKS_CATALOG_NAME}
                   />
                 </Grid>
                 
@@ -299,6 +364,7 @@ const DataSourceConfig: React.FC = () => {
                     value={schema}
                     onChange={(e) => setSchema(e.target.value)}
                     helperText="The schema to use (e.g., default)"
+                    disabled={!!import.meta.env.VITE_DATABRICKS_SCHEMA}
                   />
                 </Grid>
                 
@@ -312,6 +378,7 @@ const DataSourceConfig: React.FC = () => {
                     value={apiKey}
                     onChange={(e) => setApiKey(e.target.value)}
                     helperText="Your Databricks API Key for authentication"
+                    disabled={!!import.meta.env.VITE_DATABRICKS_API_KEY}
                   />
                 </Grid>
               </>
@@ -335,6 +402,7 @@ const DataSourceConfig: React.FC = () => {
                     onChange={(e) => setBaseUrl(e.target.value)}
                     helperText="The base URL of the API"
                     required
+                    disabled={!!import.meta.env.VITE_API_URL}
                   />
                 </Grid>
                 
