@@ -22,13 +22,15 @@ import {
   InputLabel,
   Select,
   MenuItem,
-  SelectChangeEvent
+  SelectChangeEvent,
+  Container
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import FilterListIcon from '@mui/icons-material/FilterList';
 import AddIcon from '@mui/icons-material/Add';
 import { GLAccount } from '../types/data';
 import { useData } from '../context/DataContext';
+import GLAccountDetailsModal from '../modals/GLAccountDetailsModal';
 
 // Column definition for the table
 interface Column {
@@ -93,12 +95,14 @@ const accountTypeFilters = [
 
 export const GLAccounts: React.FC = () => {
   const { isLoading, fetchGLAccounts } = useData();
-  const [accounts, setAccounts] = useState<GLAccount[]>([]);
+  const [glAccounts, setGLAccounts] = useState<GLAccount[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [searchQuery, setSearchQuery] = useState('');
   const [accountTypeFilter, setAccountTypeFilter] = useState('all');
+  const [openDetailsModal, setOpenDetailsModal] = useState(false);
+  const [selectedGLAccount, setSelectedGLAccount] = useState<GLAccount | null>(null);
 
   // Fetch GL accounts when filters change
   useEffect(() => {
@@ -120,7 +124,7 @@ export const GLAccounts: React.FC = () => {
         }
 
         const data = await fetchGLAccounts(filters);
-        setAccounts(data);
+        setGLAccounts(data);
       } catch (err) {
         console.error('Error fetching GL accounts:', err);
         setError('Failed to load GL accounts. Please try again later.');
@@ -141,7 +145,18 @@ export const GLAccounts: React.FC = () => {
   };
 
   // Apply pagination
-  const paginatedAccounts = accounts.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
+  const paginatedAccounts = glAccounts.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
+
+  // Handler for row click
+  const handleRowClick = (account: GLAccount) => {
+    setSelectedGLAccount(account);
+    setOpenDetailsModal(true);
+  };
+
+  const handleDetailsModalClose = () => {
+    setOpenDetailsModal(false);
+    setSelectedGLAccount(null);
+  };
 
   return (
     <Box sx={{ p: 3 }}>
@@ -234,7 +249,12 @@ export const GLAccounts: React.FC = () => {
             </TableHead>
             <TableBody>
               {paginatedAccounts.map((account) => (
-                <TableRow key={account.id} hover sx={{ cursor: 'pointer' }}>
+                <TableRow
+                  key={account.id}
+                  hover
+                  sx={{ cursor: 'pointer' }}
+                  onClick={() => handleRowClick(account)}
+                >
                   {columns.map((column) => {
                     const value = account[column.id];
                     return (
@@ -260,7 +280,7 @@ export const GLAccounts: React.FC = () => {
         <TablePagination
           rowsPerPageOptions={[5, 10, 25]}
           component="div"
-          count={accounts.length}
+          count={glAccounts.length}
           rowsPerPage={rowsPerPage}
           page={page}
           onPageChange={(_, newPage) => setPage(newPage)}
@@ -270,6 +290,13 @@ export const GLAccounts: React.FC = () => {
           }}
         />
       </Paper>
+
+      {/* GL Account Details Modal */}
+      <GLAccountDetailsModal
+        open={openDetailsModal}
+        onClose={handleDetailsModalClose}
+        glAccount={selectedGLAccount}
+      />
     </Box>
   );
 }; 

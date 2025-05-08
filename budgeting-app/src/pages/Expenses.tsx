@@ -34,6 +34,7 @@ import DownloadIcon from '@mui/icons-material/Download';
 import { useData } from '../context/DataContext';
 import { FinancialTransaction } from '../types/data';
 import { mockGLAccountLookup, mockProjectLookup, mockVendorLookup } from '../services/mockData';
+import ExpenseFormModal from '../modals/ExpenseFormModal';
 
 // Column definition for the table
 interface Column {
@@ -109,7 +110,7 @@ const dateFilters = [
 export const ExpensesPage: React.FC = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  const { isLoading, fetchTransactions } = useData();
+  const { isLoading, fetchTransactions, addTransaction, updateTransaction } = useData();
   
   const [transactions, setTransactions] = useState<FinancialTransaction[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -119,6 +120,10 @@ export const ExpensesPage: React.FC = () => {
   const [order, setOrder] = useState<Order>('desc');
   const [orderBy, setOrderBy] = useState<keyof FinancialTransaction>('date');
   const [dateFilter, setDateFilter] = useState('all');
+  const [selectedTransaction, setSelectedTransaction] = useState<FinancialTransaction | null>(null);
+  const [openModal, setOpenModal] = useState(false);
+  const [modalMode, setModalMode] = useState<'add' | 'edit'>('add');
+
 
   // Fetch transactions when filters change
   useEffect(() => {
@@ -188,6 +193,29 @@ export const ExpensesPage: React.FC = () => {
     setPage(0);
   };
 
+  const handleModalClose = () => {
+    setOpenModal(false);
+    setSelectedTransaction(null);
+  };
+  
+  // Handler for modal submit (add/edit)
+  const handleModalSubmit = async (data: any) => {
+    try {
+      if (modalMode === 'add') {
+        await addTransaction(data);
+      } else if (modalMode === 'edit' && selectedTransaction) {
+        await updateTransaction(data);
+      }
+      setOpenModal(false);
+      setSelectedTransaction(null);
+      // Refresh transactions
+      const refreshed = await fetchTransactions();
+      setTransactions(refreshed);
+    } catch (err) {
+      setError('Failed to save expense. Please try again.');
+    }
+  };
+
   // Sort transactions
   const sortedTransactions = [...transactions].sort((a, b) => {
     const isAsc = order === 'asc';
@@ -235,6 +263,11 @@ export const ExpensesPage: React.FC = () => {
             color="primary" 
             startIcon={<AddIcon />}
             size={isMobile ? 'small' : 'medium'}
+            onClick={() => {
+              setSelectedTransaction(null);
+              setOpenModal(true);
+              setModalMode('add');
+            }}
           >
             New Expense
           </Button>
@@ -322,6 +355,11 @@ export const ExpensesPage: React.FC = () => {
                   tabIndex={-1} 
                   key={transaction.id}
                   sx={{ cursor: 'pointer' }}
+                  onClick={() => {
+                    setSelectedTransaction(transaction);
+                    setModalMode('edit');
+                    setOpenModal(true);
+                  }}
                 >
                   {columns.map((column) => {
                     const value = transaction[column.id as keyof FinancialTransaction];
@@ -357,6 +395,15 @@ export const ExpensesPage: React.FC = () => {
           onRowsPerPageChange={handleChangeRowsPerPage}
         />
       </Paper>
+
+      {/* Expense Add/Edit Modal */}
+      <ExpenseFormModal
+        open={openModal}
+        onClose={handleModalClose}
+        onSubmit={handleModalSubmit}
+        initialData={selectedTransaction}
+        mode={modalMode}
+      />
     </Container>
   );
 };

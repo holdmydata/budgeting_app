@@ -1,5 +1,5 @@
 // Mock data for the budgeting app when APIs are unavailable
-import { KPI, GLAccount, Project, FinancialTransaction, BudgetEntry } from '../types/data';
+import { KPI, GLAccount, Project, FinancialTransaction, BudgetEntry, Vendor } from '../types/data';
 
 // Mock KPI data
 export const mockKPIs: KPI[] = [
@@ -320,4 +320,85 @@ export const mockBudgetEntries: BudgetEntry[] = [
     remainingAmount: 180000,
     description: 'Network & Telecom budget for FY23'
   }
-]; 
+];
+
+export const mockVendors: Vendor[] = [
+  {
+    id: '1',
+    vendorName: 'Acme Tech Solutions',
+    vendorCode: 'VEN-001',
+    contactName: 'John Smith',
+    contactEmail: 'john@acmetech.com',
+    contactPhone: '(555) 123-4567',
+    category: 'Software',
+    performanceScore: 4.5,
+    isActive: true,
+    createdAt: '2023-01-01T00:00:00Z',
+    updatedAt: '2023-02-15T00:00:00Z'
+  },
+  {
+    id: '2',
+    vendorName: 'DataSphere Inc.',
+    vendorCode: 'VEN-002',
+    contactName: 'Sarah Johnson',
+    contactEmail: 'sarah@datasphere.com',
+    contactPhone: '(555) 987-6543',
+    category: 'Cloud Services',
+    performanceScore: 5.0,
+    isActive: true,
+    createdAt: '2023-01-05T00:00:00Z',
+    updatedAt: '2023-03-10T00:00:00Z'
+  },
+  {
+    id: '3',
+    vendorName: 'AgriTech Hardware Co.',
+    vendorCode: 'VEN-003',
+    contactName: 'Michael Brown',
+    contactEmail: 'michael@agritech.com',
+    contactPhone: '(555) 234-5678',
+    category: 'Hardware',
+    performanceScore: 3.8,
+    isActive: true,
+    createdAt: '2023-01-10T00:00:00Z',
+    updatedAt: '2023-02-20T00:00:00Z'
+  },
+  {
+    id: '4',
+    vendorName: 'FarmSys Consulting',
+    vendorCode: 'VEN-004',
+    contactName: 'Emily Davis',
+    contactEmail: 'emily@farmsys.com',
+    contactPhone: '(555) 345-6789',
+    category: 'Consulting',
+    performanceScore: 4.2,
+    isActive: true,
+    createdAt: '2023-01-15T00:00:00Z',
+    updatedAt: '2023-03-15T00:00:00Z'
+  },
+  {
+    id: '5',
+    vendorName: 'Network Solutions Ltd.',
+    vendorCode: 'VEN-005',
+    contactName: 'Robert Wilson',
+    contactEmail: 'robert@networksol.com',
+    contactPhone: '(555) 456-7890',
+    category: 'Network',
+    performanceScore: 4.0,
+    isActive: false,
+    createdAt: '2023-01-20T00:00:00Z',
+    updatedAt: '2023-02-25T00:00:00Z'
+  },
+  {
+    id: '6',
+    vendorName: 'Security Pro Partners',
+    vendorCode: 'VEN-006',
+    contactName: 'Amanda Martinez',
+    contactEmail: 'amanda@securitypro.com',
+    contactPhone: '(555) 567-8901',
+    category: 'Security',
+    performanceScore: 4.7,
+    isActive: true,
+    createdAt: '2023-01-25T00:00:00Z',
+    updatedAt: '2023-03-20T00:00:00Z'
+  }
+];

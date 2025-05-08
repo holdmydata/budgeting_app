@@ -37,8 +37,10 @@ import CancelIcon from '@mui/icons-material/Cancel';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import PauseCircleIcon from '@mui/icons-material/PauseCircle';
 import PlayCircleIcon from '@mui/icons-material/PlayCircle';
+import EditIcon from '@mui/icons-material/Edit';
 import { useData } from '../context/DataContext';
 import { Project } from '../types/data';
+import ProjectFormModal from '../modals/ProjectFormModal';
 
 // Format currency helper
 const formatCurrency = (value: number): string => {
@@ -160,7 +162,7 @@ const statusFilters = [
 const ProjectsPage: React.FC = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  const { isLoading, fetchProjects } = useData();
+  const { isLoading, fetchProjects, addProject, updateProject } = useData();
   
   const [projects, setProjects] = useState<Project[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -170,6 +172,9 @@ const ProjectsPage: React.FC = () => {
   const [orderBy, setOrderBy] = useState<keyof Project>('projectName');
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [openModal, setOpenModal] = useState(false);
+  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+  const [modalMode, setModalMode] = useState<'add' | 'edit'>('add');
 
   // Fetch projects when filters change
   useEffect(() => {
@@ -256,6 +261,37 @@ const ProjectsPage: React.FC = () => {
     page * rowsPerPage + rowsPerPage
   );
 
+  // Handler for Add button
+  const handleAdd = () => {
+    setSelectedProject(null);
+    setModalMode('add');
+    setOpenModal(true);
+  };
+
+  // Handler for Edit button
+  const handleEdit = (project: Project) => {
+    setSelectedProject(project);
+    setModalMode('edit');
+    setOpenModal(true);
+  };
+
+  // Handler for modal submit
+  const handleModalSubmit = async (data: any) => {
+    try {
+      if (modalMode === 'add') {
+        await addProject(data);
+      } else if (modalMode === 'edit' && selectedProject) {
+        await updateProject(data);
+      }
+      setOpenModal(false);
+      // Refresh projects
+      const refreshed = await fetchProjects();
+      setProjects(refreshed);
+    } catch (err) {
+      setError('Failed to save project. Please try again.');
+    }
+  };
+
   return (
     <Container maxWidth="xl" sx={{ mt: 2, px: { xs: 2, sm: 3, md: 4 } }}>
       <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap' }}>
@@ -272,6 +308,7 @@ const ProjectsPage: React.FC = () => {
           color="primary" 
           startIcon={<AddIcon />}
           sx={{ mt: isMobile ? 2 : 0 }}
+          onClick={handleAdd}
         >
           New Project
         </Button>
@@ -430,6 +467,12 @@ const ProjectsPage: React.FC = () => {
                       </TableCell>
                     );
                   })}
+                  {/* Edit button cell */}
+                  <TableCell align="center">
+                    <IconButton onClick={() => handleEdit(project)} size="small" aria-label="Edit project">
+                      <EditIcon fontSize="small" />
+                    </IconButton>
+                  </TableCell>
                 </TableRow>
               ))}
               {displayedProjects.length === 0 && !isLoading && (
@@ -454,6 +497,15 @@ const ProjectsPage: React.FC = () => {
           onRowsPerPageChange={handleChangeRowsPerPage}
         />
       </Paper>
+
+      {/* Project Add/Edit Modal */}
+      <ProjectFormModal
+        open={openModal}
+        onClose={() => setOpenModal(false)}
+        onSubmit={handleModalSubmit}
+        initialData={selectedProject}
+        mode={modalMode}
+      />
     </Container>
   );
 };

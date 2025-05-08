@@ -1,13 +1,14 @@
 import React, { createContext, useContext, ReactNode, useState } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useAuth } from './AuthContext';
-import { FinancialTransaction, BudgetEntry, Project, GLAccount, KPI } from '../types/data';
+import { FinancialTransaction, BudgetEntry, Project, GLAccount, KPI, Vendor } from '../types/data';
 import { 
   mockKPIs, 
   mockGLAccounts, 
   mockProjects, 
   mockTransactions, 
-  mockBudgetEntries 
+  mockBudgetEntries,
+  mockVendors
 } from '../services/mockData';
 import axios from 'axios';
 
@@ -68,10 +69,19 @@ interface DataContextType {
   fetchDashboardKPIs: () => Promise<KPI[]>;
   fetchProjects: () => Promise<Project[]>;
   fetchProjectDetails: (projectId: string) => Promise<Project>;
+  addProject: (project: Project) => Promise<Project>;
+  updateProject: (project: Project) => Promise<Project>;
+  deleteProject: (projectId: string) => Promise<void>;
   fetchGLAccounts: (filters?: object) => Promise<GLAccount[]>;
   fetchTransactions: (filters?: object) => Promise<FinancialTransaction[]>;
   fetchBudgetEntries: (filters?: object) => Promise<BudgetEntry[]>;
   executeSqlQuery: (query: string) => Promise<any>;
+  addTransaction: (transaction: FinancialTransaction) => Promise<FinancialTransaction>;
+  updateTransaction: (transaction: FinancialTransaction) => Promise<FinancialTransaction>;
+  deleteTransaction: (transactionId: string) => Promise<void>;
+  addVendor: (vendor: Vendor) => Promise<Vendor>;
+  updateVendor: (vendor: Vendor) => Promise<Vendor>;
+  deleteVendor: (vendorId: string) => Promise<void>;
 }
 
 // Create the context
@@ -448,6 +458,7 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
     return [...mockGLAccounts];
   };
 
+  
   // Function to fetch transactions
   const fetchTransactions = async (filters: object = {}): Promise<FinancialTransaction[]> => {
     if (useMockData || connectionType === ConnectionType.MOCK) {
@@ -532,6 +543,85 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
     return [...mockBudgetEntries];
   };
 
+  // --- Add Project (mock) ---
+  const addProject = async (project: Project): Promise<Project> => {
+    const newProject = {
+      ...project,
+      id: Math.random().toString(36).substr(2, 9),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    mockProjects.push(newProject);
+    return newProject;
+  };
+
+  // --- Update Project (mock) ---
+  const updateProject = async (project: Project): Promise<Project> => {
+    const idx = mockProjects.findIndex(p => p.id === project.id);
+    if (idx === -1) throw new Error('Project not found');
+    mockProjects[idx] = { ...project, updatedAt: new Date().toISOString() };
+    return mockProjects[idx];
+  };
+
+  // --- Delete Project (mock) ---
+  const deleteProject = async (projectId: string): Promise<void> => {
+    const idx = mockProjects.findIndex(p => p.id === projectId);
+    if (idx !== -1) mockProjects.splice(idx, 1);
+  };
+
+  // --- Add Transaction (mock) ---
+  const addTransaction = async (transaction: FinancialTransaction): Promise<FinancialTransaction> => {
+    // Simulate ID and timestamps
+    const newTransaction = {
+      ...transaction,
+      id: Math.random().toString(36).substr(2, 9),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    mockTransactions.push(newTransaction);
+    return newTransaction;
+  };
+
+  // --- Update Transaction (mock) ---
+  const updateTransaction = async (transaction: FinancialTransaction): Promise<FinancialTransaction> => {
+    const idx = mockTransactions.findIndex(t => t.id === transaction.id);
+    if (idx === -1) throw new Error('Transaction not found');
+    mockTransactions[idx] = { ...transaction, updatedAt: new Date().toISOString() };
+    return mockTransactions[idx];
+  };
+
+  // --- Delete Transaction (mock) ---
+  const deleteTransaction = async (transactionId: string): Promise<void> => {
+    const idx = mockTransactions.findIndex(t => t.id === transactionId);
+    if (idx !== -1) mockTransactions.splice(idx, 1);
+  };
+
+  // --- Add Vendor (mock) ---
+  const addVendor = async (vendor: Vendor): Promise<Vendor> => {
+    const newVendor = {
+      ...vendor,
+      id: Math.random().toString(36).substr(2, 9),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    mockVendors.push(newVendor);
+    return newVendor;
+  };
+
+  // --- Update Vendor (mock) ---
+  const updateVendor = async (vendor: Vendor): Promise<Vendor> => {
+    const idx = mockVendors.findIndex(v => v.id === vendor.id);
+    if (idx === -1) throw new Error('Vendor not found');
+    mockVendors[idx] = { ...vendor, updatedAt: new Date().toISOString() };
+    return mockVendors[idx];
+  };
+
+  // --- Delete Vendor (mock) ---
+  const deleteVendor = async (vendorId: string): Promise<void> => {
+    const idx = mockVendors.findIndex(v => v.id === vendorId);
+    if (idx !== -1) mockVendors.splice(idx, 1);
+  };
+
   // Provide the context value
   const contextValue = {
     isLoading,
@@ -551,6 +641,15 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
     fetchTransactions,
     fetchBudgetEntries,
     executeSqlQuery,
+    addProject,
+    updateProject,
+    deleteProject,
+    addTransaction,
+    updateTransaction,
+    deleteTransaction,
+    addVendor,
+    updateVendor,
+    deleteVendor,
   };
 
   return (

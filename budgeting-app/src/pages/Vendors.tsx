@@ -28,88 +28,10 @@ import FilterListIcon from '@mui/icons-material/FilterList';
 import AddIcon from '@mui/icons-material/Add';
 import { useData } from '../context/DataContext';
 import { Vendor } from '../types/data';
+import { mockVendors } from '../services/mockData';
+import VendorFormModal from '../modals/VendorFormModal';
 
-// Mock data for initial rendering
-const mockVendors: Vendor[] = [
-  {
-    id: '1',
-    vendorName: 'Acme Tech Solutions',
-    vendorCode: 'VEN-001',
-    contactName: 'John Smith',
-    contactEmail: 'john@acmetech.com',
-    contactPhone: '(555) 123-4567',
-    category: 'Software',
-    performanceScore: 4.5,
-    isActive: true,
-    createdAt: '2023-01-01T00:00:00Z',
-    updatedAt: '2023-02-15T00:00:00Z'
-  },
-  {
-    id: '2',
-    vendorName: 'DataSphere Inc.',
-    vendorCode: 'VEN-002',
-    contactName: 'Sarah Johnson',
-    contactEmail: 'sarah@datasphere.com',
-    contactPhone: '(555) 987-6543',
-    category: 'Cloud Services',
-    performanceScore: 5.0,
-    isActive: true,
-    createdAt: '2023-01-05T00:00:00Z',
-    updatedAt: '2023-03-10T00:00:00Z'
-  },
-  {
-    id: '3',
-    vendorName: 'AgriTech Hardware Co.',
-    vendorCode: 'VEN-003',
-    contactName: 'Michael Brown',
-    contactEmail: 'michael@agritech.com',
-    contactPhone: '(555) 234-5678',
-    category: 'Hardware',
-    performanceScore: 3.8,
-    isActive: true,
-    createdAt: '2023-01-10T00:00:00Z',
-    updatedAt: '2023-02-20T00:00:00Z'
-  },
-  {
-    id: '4',
-    vendorName: 'FarmSys Consulting',
-    vendorCode: 'VEN-004',
-    contactName: 'Emily Davis',
-    contactEmail: 'emily@farmsys.com',
-    contactPhone: '(555) 345-6789',
-    category: 'Consulting',
-    performanceScore: 4.2,
-    isActive: true,
-    createdAt: '2023-01-15T00:00:00Z',
-    updatedAt: '2023-03-15T00:00:00Z'
-  },
-  {
-    id: '5',
-    vendorName: 'Network Solutions Ltd.',
-    vendorCode: 'VEN-005',
-    contactName: 'Robert Wilson',
-    contactEmail: 'robert@networksol.com',
-    contactPhone: '(555) 456-7890',
-    category: 'Network',
-    performanceScore: 4.0,
-    isActive: false,
-    createdAt: '2023-01-20T00:00:00Z',
-    updatedAt: '2023-02-25T00:00:00Z'
-  },
-  {
-    id: '6',
-    vendorName: 'Security Pro Partners',
-    vendorCode: 'VEN-006',
-    contactName: 'Amanda Martinez',
-    contactEmail: 'amanda@securitypro.com',
-    contactPhone: '(555) 567-8901',
-    category: 'Security',
-    performanceScore: 4.7,
-    isActive: true,
-    createdAt: '2023-01-25T00:00:00Z',
-    updatedAt: '2023-03-20T00:00:00Z'
-  }
-];
+
 
 // Column definition for the table
 interface Column {
@@ -162,7 +84,7 @@ type Order = 'asc' | 'desc';
 export const Vendors: React.FC = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  const { isLoading } = useData();
+  const { isLoading, addVendor, updateVendor } = useData();
   
   const [vendors, setVendors] = useState<Vendor[]>(mockVendors);
   const [page, setPage] = useState(0);
@@ -170,12 +92,33 @@ export const Vendors: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [order, setOrder] = useState<Order>('asc');
   const [orderBy, setOrderBy] = useState<keyof Vendor>('vendorName');
+  const [openModal, setOpenModal] = useState(false);
+  const [selectedVendor, setSelectedVendor] = useState<Vendor | null>(null);
+  const [modalMode, setModalMode] = useState<'add' | 'edit'>('add');
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     // In a real app, we would fetch vendors from API
     // For now, using mock data
     setVendors(mockVendors);
   }, []);
+
+  // Handler for modal submit (add/edit)
+  const handleModalSubmit = async (data: any) => {
+    try {
+      if (modalMode === 'add') {
+        await addVendor(data);
+      } else if (modalMode === 'edit' && selectedVendor) {
+        await updateVendor(data);
+      }
+      setOpenModal(false);
+      setSelectedVendor(null);
+      // Refresh vendors (mock)
+      setVendors([...mockVendors]);
+    } catch (err) {
+      setError('Failed to save vendor. Please try again.');
+    }
+  };
 
   const handleRequestSort = (property: keyof Vendor) => {
     const isAsc = orderBy === property && order === 'asc';
@@ -195,6 +138,11 @@ export const Vendors: React.FC = () => {
   const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(event.target.value);
     setPage(0);
+  };
+
+  const handleModalClose = () => {
+    setOpenModal(false);
+    setSelectedVendor(null);
   };
 
   // Filter vendors based on search query
@@ -269,6 +217,11 @@ export const Vendors: React.FC = () => {
           color="primary" 
           startIcon={<AddIcon />}
           sx={{ mt: isMobile ? 2 : 0 }}
+          onClick={() => {
+            setSelectedVendor(null);
+            setModalMode('add');
+            setOpenModal(true);
+          }}
         >
           Add Vendor
         </Button>
@@ -330,6 +283,11 @@ export const Vendors: React.FC = () => {
                   tabIndex={-1} 
                   key={vendor.id}
                   sx={{ cursor: 'pointer' }}
+                  onClick={() => {
+                    setSelectedVendor(vendor);
+                    setModalMode('edit');
+                    setOpenModal(true);
+                  }}
                 >
                   {columns.map((column) => {
                     const value = vendor[column.id];
@@ -361,6 +319,14 @@ export const Vendors: React.FC = () => {
           onRowsPerPageChange={handleChangeRowsPerPage}
         />
       </Paper>
+      {/* Vendor Add/Edit Modal */}
+      <VendorFormModal
+        open={openModal}
+        onClose={handleModalClose}
+        onSubmit={handleModalSubmit}
+        initialData={selectedVendor}
+        mode={modalMode}
+      />
     </Container>
   );
 };
