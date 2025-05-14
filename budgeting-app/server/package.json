@@ -2,10 +2,12 @@
   "name": "budgeting-app-server",
   "version": "1.0.0",
   "description": "Budgeting application server with Databricks SQL connection",
-  "main": "server.js",
+  "main": "dist/server.js",
   "scripts": {
-    "start": "node server.js",
-    "dev": "nodemon server.js",
+    "start": "node dist/server.js",
+    "dev": "ts-node server.ts",
+    "build": "tsc",
+    "clean": "rm -rf dist",
     "test": "jest"
   },
   "dependencies": {
@@ -18,10 +20,14 @@
     "graphql": "^16.6.0"
   },
   "devDependencies": {
+    "@types/express": "^5.0.1",
+    "@types/node": "^22.15.18",
     "jest": "^29.5.0",
-    "nodemon": "^2.0.22"
+    "nodemon": "^2.0.22",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.8.3"
   },
   "engines": {
     "node": ">=14.0.0"
   }
-} 
+}

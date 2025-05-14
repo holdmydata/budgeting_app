@@ -7,20 +7,20 @@ const bodyParser = require('body-parser');
 const { DBSQLClient } = require('@databricks/sql');
 const { ApolloServer } = require('@apollo/server');
 const { expressMiddleware } = require('@apollo/server/express4');
+import { Request, Response, NextFunction } from 'express';
 
 const app = express();
 const port = process.env.PORT || 5000;
 const connectionTimeout = parseInt(process.env.CONNECTION_TIMEOUT || '1800000', 10); // Default to 30 minutes
 
 // Parse allowed origins from environment or default to all
-let corsOptions = {};
+let corsOptions: any = {};
 if (process.env.ALLOWED_ORIGINS) {
   const allowedOrigins = process.env.ALLOWED_ORIGINS.split(',');
   corsOptions = {
-    origin: function (origin, callback) {
+    origin: function (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) {
       // Allow requests with no origin (like mobile apps, curl, etc.)
       if (!origin) return callback(null, true);
-      
       if (allowedOrigins.indexOf(origin) !== -1 || allowedOrigins.includes('*')) {
         callback(null, true);
       } else {
@@ -39,7 +39,7 @@ app.use(bodyParser.json());
 const connections = new Map();
 
 // Error handling middleware
-const errorHandler = (err, req, res, next) => {
+const errorHandler = (err: any, req: Request, res: Response, next: NextFunction) => {
   console.error('Server error:', err);
   res.status(500).json({ 
     error: true, 
@@ -48,7 +48,7 @@ const errorHandler = (err, req, res, next) => {
 };
 
 // Connect to Databricks
-app.post('/api/databricks/connect', async (req, res) => {
+app.post('/api/databricks/connect', async (req: Request, res: Response) => {
   try {
     const { workspaceUrl, httpPath, warehouseId, catalog, schema, apiKey } = req.body;
     
@@ -74,7 +74,7 @@ app.post('/api/databricks/connect', async (req, res) => {
     });
     
     // Open a session with catalog and schema
-    const sessionOptions = {};
+    const sessionOptions: { initialCatalog?: string; initialSchema?: string } = {};
     if (catalog) sessionOptions.initialCatalog = catalog;
     if (schema) sessionOptions.initialSchema = schema;
     
@@ -96,7 +96,7 @@ app.post('/api/databricks/connect', async (req, res) => {
       message: 'Connected to Databricks successfully',
       sessionId
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Failed to connect to Databricks:', error);
     res.status(500).json({ 
       error: true, 
@@ -106,7 +106,7 @@ app.post('/api/databricks/connect', async (req, res) => {
 });
 
 // Test connection
-app.post('/api/databricks/test', async (req, res) => {
+app.post('/api/databricks/test', async (req: Request, res: Response) => {
   try {
     const { workspaceUrl, httpPath, warehouseId, catalog, schema, apiKey } = req.body;
     
@@ -129,7 +129,7 @@ app.post('/api/databricks/test', async (req, res) => {
     });
     
     // Open a temporary session
-    const sessionOptions = {};
+    const sessionOptions: { initialCatalog?: string; initialSchema?: string } = {};
     if (catalog) sessionOptions.initialCatalog = catalog;
     if (schema) sessionOptions.initialSchema = schema;
     
@@ -149,7 +149,7 @@ app.post('/api/databricks/test', async (req, res) => {
       success: true,
       message: 'Databricks connection test successful'
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Databricks connection test failed:', error);
     res.status(500).json({ 
       error: true, 
@@ -159,7 +159,7 @@ app.post('/api/databricks/test', async (req, res) => {
 });
 
 // Close connection
-app.post('/api/databricks/disconnect', async (req, res) => {
+app.post('/api/databricks/disconnect', async (req: Request, res: Response) => {
   try {
     const { sessionId } = req.body;
     
@@ -177,7 +177,7 @@ app.post('/api/databricks/disconnect', async (req, res) => {
       success: true,
       message: 'Disconnected from Databricks successfully'
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Failed to disconnect from Databricks:', error);
     res.status(500).json({ 
       error: true, 
@@ -187,7 +187,7 @@ app.post('/api/databricks/disconnect', async (req, res) => {
 });
 
 // Helper function to close connection
-async function closeConnection(sessionId) {
+async function closeConnection(sessionId: string) {
   try {
     const connection = connections.get(sessionId);
     if (connection) {
@@ -199,13 +199,13 @@ async function closeConnection(sessionId) {
       connections.delete(sessionId);
       console.log(`Closed Databricks connection for session ${sessionId}`);
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error(`Error closing connection ${sessionId}:`, error);
   }
 }
 
 // Execute query
-app.post('/api/databricks/query', async (req, res) => {
+app.post('/api/databricks/query', async (req: Request, res: Response) => {
   try {
     const { sessionId, query } = req.body;
     
@@ -234,7 +234,7 @@ app.post('/api/databricks/query', async (req, res) => {
       success: true,
       data: results
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Query execution failed:', error);
     res.status(500).json({ 
       error: true, 
@@ -244,7 +244,7 @@ app.post('/api/databricks/query', async (req, res) => {
 });
 
 // Fetch KPIs
-app.get('/api/kpis', async (req, res) => {
+app.get('/api/kpis', async (req: Request, res: Response) => {
   try {
     const { sessionId } = req.query;
     
@@ -274,7 +274,7 @@ app.get('/api/kpis', async (req, res) => {
     await operation.close();
     
     res.json(results);
-  } catch (error) {
+  } catch (error: any) {
     console.error('Failed to fetch KPIs:', error);
     res.status(500).json({ 
       error: true, 
@@ -284,7 +284,7 @@ app.get('/api/kpis', async (req, res) => {
 });
 
 // Fetch GL Accounts
-app.get('/api/gl-accounts', async (req, res) => {
+app.get('/api/gl-accounts', async (req: Request, res: Response) => {
   try {
     const { sessionId, ...filters } = req.query;
     
@@ -324,7 +324,7 @@ app.get('/api/gl-accounts', async (req, res) => {
     await operation.close();
     
     res.json(results);
-  } catch (error) {
+  } catch (error: any) {
     console.error('Failed to fetch GL accounts:', error);
     res.status(500).json({ 
       error: true, 
@@ -334,7 +334,7 @@ app.get('/api/gl-accounts', async (req, res) => {
 });
 
 // Fetch Projects
-app.get('/api/projects', async (req, res) => {
+app.get('/api/projects', async (req: Request, res: Response) => {
   try {
     const { sessionId, ...filters } = req.query;
     
@@ -380,7 +380,7 @@ app.get('/api/projects', async (req, res) => {
     await operation.close();
     
     res.json(results);
-  } catch (error) {
+  } catch (error: any) {
     console.error('Failed to fetch projects:', error);
     res.status(500).json({ 
       error: true, 
@@ -390,7 +390,7 @@ app.get('/api/projects', async (req, res) => {
 });
 
 // Fetch Transactions
-app.get('/api/transactions', async (req, res) => {
+app.get('/api/transactions', async (req: Request, res: Response) => {
   try {
     const { sessionId, ...filters } = req.query;
     
@@ -433,7 +433,7 @@ app.get('/api/transactions', async (req, res) => {
     await operation.close();
     
     res.json(results);
-  } catch (error) {
+  } catch (error: any) {
     console.error('Failed to fetch transactions:', error);
     res.status(500).json({ 
       error: true, 
@@ -443,7 +443,7 @@ app.get('/api/transactions', async (req, res) => {
 });
 
 // Fetch Budget Entries
-app.get('/api/budget-entries', async (req, res) => {
+app.get('/api/budget-entries', async (req: Request, res: Response) => {
   try {
     const { sessionId, ...filters } = req.query;
     
@@ -484,7 +484,7 @@ app.get('/api/budget-entries', async (req, res) => {
     await operation.close();
     
     res.json(results);
-  } catch (error) {
+  } catch (error: any) {
     console.error('Failed to fetch budget entries:', error);
     res.status(500).json({ 
       error: true, 
@@ -494,7 +494,7 @@ app.get('/api/budget-entries', async (req, res) => {
 });
 
 // Server status endpoint
-app.get('/api/status', (req, res) => {
+app.get('/api/status', (req: Request, res: Response) => {
   res.json({
     status: 'ok',
     activeConnections: connections.size,
@@ -576,193 +576,11 @@ const typeDefs = `#graphql
   }
 `;
 
-// GraphQL Resolvers
-const resolvers = {
-  Query: {
-    kpis: async (_, { sessionId }) => {
-      if (!sessionId || !connections.has(sessionId)) {
-        throw new Error('Invalid or expired session');
-      }
-      
-      const { session } = connections.get(sessionId);
-      
-      const query = `
-        SELECT 
-          id,
-          title,
-          value,
-          formattedValue,
-          change,
-          secondaryValue
-        FROM kpi_view
-      `;
-      
-      const operation = await session.executeStatement(query);
-      const results = await operation.fetchAll();
-      await operation.close();
-      
-      return results;
-    },
-    
-    glAccounts: async (_, { sessionId, ...filters }) => {
-      if (!sessionId || !connections.has(sessionId)) {
-        throw new Error('Invalid or expired session');
-      }
-      
-      const { session } = connections.get(sessionId);
-      
-      // Build WHERE clause based on filters
-      const whereConditions = [];
-      if (filters.accountType) whereConditions.push(`account_type = '${filters.accountType}'`);
-      if (filters.isActive !== undefined) whereConditions.push(`is_active = ${filters.isActive}`);
-      
-      const whereClause = whereConditions.length > 0 
-        ? 'WHERE ' + whereConditions.join(' AND ')
-        : '';
-      
-      const query = `
-        SELECT 
-          id,
-          account_number as accountNumber,
-          account_name as accountName,
-          account_type as accountType,
-          is_active as isActive,
-          department_id as departmentId,
-          created_at as createdAt,
-          updated_at as updatedAt
-        FROM gl_accounts
-        ${whereClause}
-      `;
-      
-      const operation = await session.executeStatement(query);
-      const results = await operation.fetchAll();
-      await operation.close();
-      
-      return results;
-    },
-    
-    projects: async (_, { sessionId, ...filters }) => {
-      if (!sessionId || !connections.has(sessionId)) {
-        throw new Error('Invalid or expired session');
-      }
-      
-      const { session } = connections.get(sessionId);
-      
-      // Build WHERE clause based on filters
-      const whereConditions = [];
-      if (filters.status) whereConditions.push(`status = '${filters.status}'`);
-      if (filters.priority) whereConditions.push(`priority = '${filters.priority}'`);
-      
-      const whereClause = whereConditions.length > 0 
-        ? 'WHERE ' + whereConditions.join(' AND ')
-        : '';
-      
-      const query = `
-        SELECT 
-          id,
-          project_code as projectCode,
-          project_name as projectName,
-          description,
-          start_date as startDate,
-          end_date as endDate,
-          budget,
-          spent,
-          status,
-          owner,
-          priority,
-          gl_account as glAccount,
-          created_at as createdAt,
-          updated_at as updatedAt
-        FROM projects
-        ${whereClause}
-      `;
-      
-      const operation = await session.executeStatement(query);
-      const results = await operation.fetchAll();
-      await operation.close();
-      
-      return results;
-    },
-    
-    transactions: async (_, { sessionId, ...filters }) => {
-      if (!sessionId || !connections.has(sessionId)) {
-        throw new Error('Invalid or expired session');
-      }
-      
-      const { session } = connections.get(sessionId);
-      
-      // Build WHERE clause based on filters
-      const whereConditions = [];
-      if (filters.projectId) whereConditions.push(`project_id = '${filters.projectId}'`);
-      if (filters.glAccount) whereConditions.push(`gl_account = '${filters.glAccount}'`);
-      
-      const whereClause = whereConditions.length > 0 
-        ? 'WHERE ' + whereConditions.join(' AND ')
-        : '';
-      
-      const query = `
-        SELECT 
-          id,
-          transaction_date as transactionDate,
-          amount,
-          description,
-          gl_account as glAccount,
-          project_id as projectId,
-          transaction_type as transactionType,
-          vendor_id as vendorId,
-          status,
-          created_at as createdAt,
-          updated_at as updatedAt
-        FROM financial_transactions
-        ${whereClause}
-      `;
-      
-      const operation = await session.executeStatement(query);
-      const results = await operation.fetchAll();
-      await operation.close();
-      
-      return results;
-    },
-    
-    budgetEntries: async (_, { sessionId, ...filters }) => {
-      if (!sessionId || !connections.has(sessionId)) {
-        throw new Error('Invalid or expired session');
-      }
-      
-      const { session } = connections.get(sessionId);
-      
-      // Build WHERE clause based on filters
-      const whereConditions = [];
-      if (filters.projectId) whereConditions.push(`project_id = '${filters.projectId}'`);
-      if (filters.fiscalYear) whereConditions.push(`fiscal_year = ${filters.fiscalYear}`);
-      
-      const whereClause = whereConditions.length > 0 
-        ? 'WHERE ' + whereConditions.join(' AND ')
-        : '';
-      
-      const query = `
-        SELECT 
-          id,
-          gl_account as glAccount,
-          project_id as projectId,
-          fiscal_year as fiscalYear,
-          fiscal_month as fiscalMonth,
-          amount,
-          notes,
-          created_at as createdAt,
-          updated_at as updatedAt
-        FROM budget_entries
-        ${whereClause}
-      `;
-      
-      const operation = await session.executeStatement(query);
-      const results = await operation.fetchAll();
-      await operation.close();
-      
-      return results;
-    }
-  }
-};
+// Import resolvers from the new resolvers.js file
+// Use require for now, as resolvers is likely CommonJS
+// If you migrate resolvers.ts to ES module, use import
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const resolvers = require('./resolvers');
 
 // Initialize Apollo Server
 async function startApolloServer() {
@@ -777,7 +595,7 @@ async function startApolloServer() {
   
   // Apply Apollo middleware to Express
   app.use('/graphql', expressMiddleware(server, {
-    context: async ({ req }) => {
+    context: async ({ req }: { req: Request }) => {
       return { req };
     },
   }));
@@ -799,4 +617,5 @@ app.use(errorHandler);
   });
 })();
 
-module.exports = app; 
+module.exports = app;
+module.exports.connections = connections; 

@@ -169,13 +169,13 @@ export const GLAccounts: React.FC = () => {
             Manage your general ledger accounts and chart of accounts
           </Typography>
         </Box>
-        <Button 
+        {/* <Button 
           variant="contained" 
           color="primary" 
           startIcon={<AddIcon />}
         >
           New Account
-        </Button>
+        </Button> */}
       </Box>
 
       <Paper 
