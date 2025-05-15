@@ -11,7 +11,8 @@ import {
   InputLabel,
   FormControl,
   Box,
-  FormHelperText
+  FormHelperText,
+  Grid
 } from '@mui/material';
 import { Project } from '../types/data';
 import { SelectChangeEvent } from '@mui/material/Select';
@@ -87,13 +88,19 @@ const ProjectFormModal: React.FC<ProjectFormModalProps> = ({
   }, [initialData, open]);
 
   // Handle input changes
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement> | SelectChangeEvent
-  ) => {
+  const handleTextFieldChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setForm((prev) => ({
       ...prev,
       [name!]: name === 'budget' || name === 'spent' ? Number(value) : value,
+    }));
+  };
+
+  const handleSelectChange = (e: SelectChangeEvent) => {
+    const { name, value } = e.target;
+    setForm((prev) => ({
+      ...prev,
+      [name!]: value,
     }));
   };
 
@@ -137,154 +144,199 @@ const ProjectFormModal: React.FC<ProjectFormModalProps> = ({
   };
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle>{mode === 'edit' ? 'Edit Project' : 'New Project'}</DialogTitle>
+    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth PaperProps={{
+      sx: {
+        borderRadius: 3,
+        boxShadow: 6,
+      }
+    }}>
+      <DialogTitle sx={{ fontWeight: 700, color: 'primary.main', pb: 0 }}>{mode === 'edit' ? 'Edit Project' : 'New Project'}</DialogTitle>
       <form onSubmit={handleSubmit}>
-        <DialogContent>
-          <Box display="flex" flexDirection="column" gap={2}>
-            <TextField
-              label="Project Code"
-              name="projectCode"
-              value={form.projectCode}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleChange(e)}
-              error={!!errors.projectCode}
-              helperText={errors.projectCode}
-              fullWidth
-              required
-            />
-            <TextField
-              label="Project Name"
-              name="projectName"
-              value={form.projectName}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleChange(e)}
-              error={!!errors.projectName}
-              helperText={errors.projectName}
-              fullWidth
-              required
-            />
-            <TextField
-              label="Description"
-              name="description"
-              value={form.description}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleChange(e)}
-              error={!!errors.description}
-              helperText={errors.description}
-              fullWidth
-              required
-              multiline
-              minRows={2}
-            />
-            <FormControl fullWidth error={!!errors.status}>
-              <InputLabel>Status</InputLabel>
-              <Select
-                label="Status"
-                name="status"
-                value={form.status}
-                onChange={(e: SelectChangeEvent) => handleChange(e)}
+        <DialogContent
+          sx={{
+            bgcolor: 'background.paper',
+            borderRadius: 2,
+            boxShadow: '0 2px 8px rgba(46, 125, 50, 0.04)',
+            border: '1px solid',
+            borderColor: 'divider',
+            mt: 1,
+            mb: 1,
+            px: { xs: 1, sm: 3 },
+            py: { xs: 2, sm: 3 },
+          }}
+        >
+          <Grid container spacing={2}>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                label="Project Code"
+                name="projectCode"
+                value={form.projectCode}
+                onChange={handleTextFieldChange}
+                error={!!errors.projectCode}
+                helperText={errors.projectCode}
+                fullWidth
                 required
-              >
-                {statusOptions.map((status) => (
-                  <MenuItem key={status} value={status}>{status}</MenuItem>
-                ))}
-              </Select>
-              {errors.status && <FormHelperText>{errors.status}</FormHelperText>}
-            </FormControl>
-            <TextField
-              label="Start Date"
-              name="startDate"
-              type="date"
-              value={form.startDate}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleChange(e)}
-              error={!!errors.startDate}
-              helperText={errors.startDate}
-              InputLabelProps={{ shrink: true }}
-              fullWidth
-              required
-            />
-            <TextField
-              label="End Date"
-              name="endDate"
-              type="date"
-              value={form.endDate}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleChange(e)}
-              error={!!errors.endDate}
-              helperText={errors.endDate}
-              InputLabelProps={{ shrink: true }}
-              fullWidth
-              required
-            />
-            <TextField
-              label="Budget"
-              name="budget"
-              type="number"
-              value={form.budget}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleChange(e)}
-              error={!!errors.budget}
-              helperText={errors.budget}
-              fullWidth
-              required
-              inputProps={{ min: 0 }}
-            />
-            <TextField
-              label="Spent"
-              name="spent"
-              type="number"
-              value={form.spent}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleChange(e)}
-              error={!!errors.spent}
-              helperText={errors.spent}
-              fullWidth
-              required
-              inputProps={{ min: 0 }}
-            />
-            <TextField
-              label="Manager"
-              name="owner"
-              value={form.owner}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleChange(e)}
-              error={!!errors.owner}
-              helperText={errors.owner}
-              fullWidth
-              required
-            />
-            <FormControl fullWidth error={!!errors.priority}>
-              <InputLabel>Priority</InputLabel>
-              <Select
-                label="Priority"
-                name="priority"
-                value={form.priority}
-                onChange={(e: SelectChangeEvent) => handleChange(e)}
+                InputLabelProps={{ shrink: true }}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                label="Project Name"
+                name="projectName"
+                value={form.projectName}
+                onChange={handleTextFieldChange}
+                error={!!errors.projectName}
+                helperText={errors.projectName}
+                fullWidth
                 required
-              >
-                {['Low', 'Medium', 'High', 'Critical'].map((priority) => (
-                  <MenuItem key={priority} value={priority}>{priority}</MenuItem>
-                ))}
-              </Select>
-              {errors.priority && <FormHelperText>{errors.priority}</FormHelperText>}
-            </FormControl>
-            <FormControl fullWidth error={!!errors.glAccount}>
-              <InputLabel>GL Account</InputLabel>
-              <Select
-                label="GL Account"
-                name="glAccount"
-                value={form.glAccount}
-                onChange={(e: SelectChangeEvent) => handleChange(e)}
+                InputLabelProps={{ shrink: true }}
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                label="Description"
+                name="description"
+                value={form.description}
+                onChange={handleTextFieldChange}
+                error={!!errors.description}
+                helperText={errors.description}
+                fullWidth
                 required
-              >
-                {/* TODO: Replace with real GL Account options from context/props */}
-                <MenuItem value="1000">1000 - IT Operations</MenuItem>
-                <MenuItem value="2000">2000 - Software Licenses</MenuItem>
-                <MenuItem value="3000">3000 - Hardware</MenuItem>
-              </Select>
-              {errors.glAccount && <FormHelperText>{errors.glAccount}</FormHelperText>}
-            </FormControl>
-          </Box>
+                multiline
+                minRows={2}
+                InputLabelProps={{ shrink: true }}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <FormControl fullWidth error={!!errors.status}>
+                <InputLabel shrink>Status</InputLabel>
+                <Select
+                  label="Status"
+                  name="status"
+                  value={form.status}
+                  onChange={handleSelectChange}
+                  required
+                >
+                  {statusOptions.map((status) => (
+                    <MenuItem key={status} value={status}>{status}</MenuItem>
+                  ))}
+                </Select>
+                {errors.status && <FormHelperText>{errors.status}</FormHelperText>}
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <FormControl fullWidth error={!!errors.priority}>
+                <InputLabel shrink>Priority</InputLabel>
+                <Select
+                  label="Priority"
+                  name="priority"
+                  value={form.priority}
+                  onChange={handleSelectChange}
+                  required
+                >
+                  <MenuItem value="High">High</MenuItem>
+                  <MenuItem value="Medium">Medium</MenuItem>
+                  <MenuItem value="Low">Low</MenuItem>
+                </Select>
+                {errors.priority && <FormHelperText>{errors.priority}</FormHelperText>}
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                label="Start Date"
+                name="startDate"
+                type="date"
+                value={form.startDate}
+                onChange={handleTextFieldChange}
+                error={!!errors.startDate}
+                helperText={errors.startDate}
+                InputLabelProps={{ shrink: true }}
+                fullWidth
+                required
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                label="End Date"
+                name="endDate"
+                type="date"
+                value={form.endDate}
+                onChange={handleTextFieldChange}
+                error={!!errors.endDate}
+                helperText={errors.endDate}
+                InputLabelProps={{ shrink: true }}
+                fullWidth
+                required
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                label="Budget"
+                name="budget"
+                type="number"
+                value={form.budget}
+                onChange={handleTextFieldChange}
+                error={!!errors.budget}
+                helperText={errors.budget}
+                fullWidth
+                required
+                inputProps={{ min: 0 }}
+                InputLabelProps={{ shrink: true }}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                label="Spent"
+                name="spent"
+                type="number"
+                value={form.spent}
+                onChange={handleTextFieldChange}
+                error={!!errors.spent}
+                helperText={errors.spent}
+                fullWidth
+                required
+                inputProps={{ min: 0 }}
+                InputLabelProps={{ shrink: true }}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                label="Manager"
+                name="owner"
+                value={form.owner}
+                onChange={handleTextFieldChange}
+                error={!!errors.owner}
+                helperText={errors.owner}
+                fullWidth
+                required
+                InputLabelProps={{ shrink: true }}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <FormControl fullWidth error={!!errors.glAccount}>
+                <InputLabel shrink>GL Account</InputLabel>
+                <Select
+                  label="GL Account"
+                  name="glAccount"
+                  value={form.glAccount}
+                  onChange={handleSelectChange}
+                  required
+                >
+                  {/* TODO: Replace with real GL Account options from context/props */}
+                  <MenuItem value="1000">1000 - IT Operations</MenuItem>
+                  <MenuItem value="2000">2000 - Software Licenses</MenuItem>
+                  <MenuItem value="3000">3000 - Hardware</MenuItem>
+                </Select>
+                {errors.glAccount && <FormHelperText>{errors.glAccount}</FormHelperText>}
+              </FormControl>
+            </Grid>
+          </Grid>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={onClose} color="secondary">
+        <DialogActions sx={{ px: 3, pb: 2, pt: 1, justifyContent: { xs: 'center', sm: 'flex-end' } }}>
+          <Button onClick={onClose} color="secondary" variant="outlined" sx={{ borderRadius: 2, minWidth: 100, mr: 1 }}>
             Cancel
           </Button>
-          <Button type="submit" variant="contained" color="primary">
+          <Button type="submit" variant="contained" color="primary" sx={{ borderRadius: 2, minWidth: 120, fontWeight: 600 }}>
             {mode === 'edit' ? 'Update' : 'Create'}
           </Button>
         </DialogActions>

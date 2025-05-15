@@ -14,7 +14,8 @@ import {
   FormHelperText,
   Switch,
   FormControlLabel,
-  Rating
+  Rating,
+  Grid
 } from '@mui/material';
 import { Vendor } from '../types/data';
 import { SelectChangeEvent } from '@mui/material/Select';
@@ -141,75 +142,109 @@ const VendorFormModal: React.FC<VendorFormModalProps> = ({
   };
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle>{mode === 'edit' ? 'Edit Vendor' : 'Add Vendor'}</DialogTitle>
+    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth PaperProps={{
+      sx: {
+        borderRadius: 3,
+        boxShadow: 6,
+      }
+    }}>
+      <DialogTitle sx={{ fontWeight: 700, color: 'primary.main', pb: 0 }}>{mode === 'edit' ? 'Edit Vendor' : 'Add Vendor'}</DialogTitle>
       <form onSubmit={handleSubmit}>
-        <DialogContent>
-          <Box display="flex" flexDirection="column" gap={2}>
-            <TextField
-              label="Vendor Name"
-              name="vendorName"
-              value={form.vendorName}
-              onChange={handleTextFieldChange}
-              error={!!errors.vendorName}
-              helperText={errors.vendorName}
-              fullWidth
-              required
-            />
-            <TextField
-              label="Vendor Code"
-              name="vendorCode"
-              value={form.vendorCode}
-              onChange={handleTextFieldChange}
-              error={!!errors.vendorCode}
-              helperText={errors.vendorCode}
-              fullWidth
-              required
-            />
-            <FormControl fullWidth error={!!errors.category}>
-              <InputLabel>Category</InputLabel>
-              <Select
-                label="Category"
-                name="category"
-                value={form.category}
-                onChange={handleSelectChange}
+        <DialogContent
+          sx={{
+            bgcolor: 'background.paper',
+            borderRadius: 2,
+            boxShadow: '0 2px 8px rgba(46, 125, 50, 0.04)',
+            border: '1px solid',
+            borderColor: 'divider',
+            mt: 1,
+            mb: 1,
+            px: { xs: 1, sm: 3 },
+            py: { xs: 2, sm: 3 },
+          }}
+        >
+          <Grid container spacing={2}>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                label="Vendor Name"
+                name="vendorName"
+                value={form.vendorName}
+                onChange={handleTextFieldChange}
+                error={!!errors.vendorName}
+                helperText={errors.vendorName}
+                fullWidth
                 required
-              >
-                {categoryOptions.map((cat) => (
-                  <MenuItem key={cat} value={cat}>{cat}</MenuItem>
-                ))}
-              </Select>
-              {errors.category && <FormHelperText>{errors.category}</FormHelperText>}
-            </FormControl>
-            <TextField
-              label="Contact Name"
-              name="contactName"
-              value={form.contactName}
-              onChange={handleTextFieldChange}
-              error={!!errors.contactName}
-              helperText={errors.contactName}
-              fullWidth
-              required
-            />
-            <TextField
-              label="Contact Email"
-              name="contactEmail"
-              value={form.contactEmail}
-              onChange={handleTextFieldChange}
-              error={!!errors.contactEmail}
-              helperText={errors.contactEmail}
-              fullWidth
-              required
-              type="email"
-            />
-            <TextField
-              label="Contact Phone"
-              name="contactPhone"
-              value={form.contactPhone}
-              onChange={handleTextFieldChange}
-              fullWidth
-            />
-            <Box display="flex" alignItems="center" gap={2}>
+                InputLabelProps={{ shrink: true }}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                label="Vendor Code"
+                name="vendorCode"
+                value={form.vendorCode}
+                onChange={handleTextFieldChange}
+                error={!!errors.vendorCode}
+                helperText={errors.vendorCode}
+                fullWidth
+                required
+                InputLabelProps={{ shrink: true }}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <FormControl fullWidth error={!!errors.category}>
+                <InputLabel shrink>Category</InputLabel>
+                <Select
+                  label="Category"
+                  name="category"
+                  value={form.category}
+                  onChange={handleSelectChange}
+                  required
+                >
+                  {categoryOptions.map((cat) => (
+                    <MenuItem key={cat} value={cat}>{cat}</MenuItem>
+                  ))}
+                </Select>
+                {errors.category && <FormHelperText>{errors.category}</FormHelperText>}
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                label="Contact Name"
+                name="contactName"
+                value={form.contactName}
+                onChange={handleTextFieldChange}
+                error={!!errors.contactName}
+                helperText={errors.contactName}
+                fullWidth
+                required
+                InputLabelProps={{ shrink: true }}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                label="Contact Email"
+                name="contactEmail"
+                value={form.contactEmail}
+                onChange={handleTextFieldChange}
+                error={!!errors.contactEmail}
+                helperText={errors.contactEmail}
+                fullWidth
+                required
+                type="email"
+                InputLabelProps={{ shrink: true }}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                label="Contact Phone"
+                name="contactPhone"
+                value={form.contactPhone}
+                onChange={handleTextFieldChange}
+                fullWidth
+                InputLabelProps={{ shrink: true }}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
               <FormControlLabel
                 control={
                   <Switch
@@ -221,6 +256,8 @@ const VendorFormModal: React.FC<VendorFormModalProps> = ({
                 }
                 label="Active"
               />
+            </Grid>
+            <Grid item xs={12} sm={6} display="flex" alignItems="center">
               <Box display="flex" alignItems="center" gap={1}>
                 <span>Rating:</span>
                 <Rating
@@ -230,14 +267,14 @@ const VendorFormModal: React.FC<VendorFormModalProps> = ({
                   size="small"
                 />
               </Box>
-            </Box>
-          </Box>
+            </Grid>
+          </Grid>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={onClose} color="secondary">
+        <DialogActions sx={{ px: 3, pb: 2, pt: 1, justifyContent: { xs: 'center', sm: 'flex-end' } }}>
+          <Button onClick={onClose} color="secondary" variant="outlined" sx={{ borderRadius: 2, minWidth: 100, mr: 1 }}>
             Cancel
           </Button>
-          <Button type="submit" variant="contained" color="primary">
+          <Button type="submit" variant="contained" color="primary" sx={{ borderRadius: 2, minWidth: 120, fontWeight: 600 }}>
             {mode === 'edit' ? 'Update' : 'Add'}
           </Button>
         </DialogActions>

@@ -8,41 +8,39 @@ import { KPI, GLAccount, Project, FinancialTransaction, BudgetEntry } from '../t
 // Helper function to convert property names when working with different model versions
 export function mapGLAccount(data: any): GLAccount {
   // Handle older format with accountNumber, accountName, etc.
-  if (data.accountNumber) {
-    return {
-      id: data.id,
-      number: data.accountNumber,
-      name: data.accountName,
-      description: data.description || data.accountType || '',
-      budgetedAmount: data.budgetedAmount || 0,
-      spentAmount: data.spentAmount || 0,
-      availableAmount: data.availableAmount || 0
-    };
-  }
-  
-  // Already in the new format
-  return data;
+  return {
+    id: data.id || '',
+    accountNumber: data.accountNumber || data.number || '',
+    accountName: data.accountName || data.name || '',
+    accountType: data.accountType || '',
+    isActive: typeof data.isActive === 'boolean' ? data.isActive : true,
+    validFrom: data.validFrom || '',
+    validTo: typeof data.validTo !== 'undefined' ? data.validTo : null,
+    isCurrent: typeof data.isCurrent === 'boolean' ? data.isCurrent : true,
+    createdAt: data.createdAt || '',
+    updatedAt: data.updatedAt || '',
+    modifiedBy: data.modifiedBy,
+    changeReason: data.changeReason
+  };
 }
 
 export function mapProject(data: any): Project {
-  // Handle older format with projectCode, projectName, etc.
-  if (data.projectCode || data.projectName) {
-    return {
-      id: data.id,
-      name: data.projectName || data.name,
-      description: data.description || '',
-      startDate: data.startDate,
-      endDate: data.endDate,
-      budget: data.budget || 0,
-      spent: data.spent || 0,
-      status: mapProjectStatus(data.status),
-      owner: data.owner || data.managerId || 'Unassigned',
-      priority: data.priority || 'Medium'
-    };
-  }
-  
-  // Already in the new format
-  return data;
+  return {
+    id: data.id || '',
+    projectCode: data.projectCode || '',
+    projectName: data.projectName || data.name || '',
+    description: data.description || '',
+    startDate: data.startDate || '',
+    endDate: data.endDate || '',
+    budget: typeof data.budget === 'number' ? data.budget : 0,
+    spent: typeof data.spent === 'number' ? data.spent : 0,
+    status: mapProjectStatus(data.status),
+    owner: data.owner || data.managerId || 'Unassigned',
+    priority: mapProjectPriority(data.priority),
+    glAccount: data.glAccount || '',
+    createdAt: data.createdAt || '',
+    updatedAt: data.updatedAt || ''
+  };
 }
 
 // Map between different status values
@@ -62,5 +60,18 @@ function mapProjectStatus(status: string): 'Planned' | 'In Progress' | 'Complete
       return 'Cancelled';
     default:
       return 'Planned';
+  }
+}
+
+function mapProjectPriority(priority: string): 'Low' | 'Medium' | 'High' | 'Critical' {
+  switch ((priority || '').toLowerCase()) {
+    case 'low':
+      return 'Low';
+    case 'high':
+      return 'High';
+    case 'critical':
+      return 'Critical';
+    default:
+      return 'Medium';
   }
 } 
