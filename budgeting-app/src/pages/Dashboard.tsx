@@ -52,37 +52,15 @@ export const Dashboard: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Mock data for charts
-  const mockYieldData = [
-    { month: 'Jan', planned: 250000, actual: 240000 },
-    { month: 'Feb', planned: 300000, actual: 290000 },
-    { month: 'Mar', planned: 280000, actual: 275000 },
-    { month: 'Apr', planned: 310000, actual: 305000 },
-    { month: 'May', planned: 340000, actual: 325000 },
-    { month: 'Jun', planned: 290000, actual: 300000 }
-  ];
-
-  const budgetDistribution = [
-    { name: 'Infrastructure', value: 1200000 },
-    { name: 'Software', value: 800000 },
-    { name: 'Services', value: 950000 },
-    { name: 'Personnel', value: 650000 },
-    { name: 'Other', value: 150000 }
-  ];
-
-  const mockSustainabilityData = [
-    { name: 'ROI', A: 70, B: 65 },
-    { name: 'Uptime', A: 99.9, B: 99.5 },
-    { name: 'Response Time', A: 85, B: 75 },
-    { name: 'Customer Sat', A: 90, B: 82 }
-  ];
-
-  const mockProjectData = [
-    { name: 'ERP System', used: 450000, remaining: 150000 },
-    { name: 'Network Infra', used: 380000, remaining: 120000 },
-    { name: 'Cloud Migration', used: 275000, remaining: 225000 },
-    { name: 'Security', used: 190000, remaining: 260000 }
-  ];
+  // Chart data state
+  const [chartData, setChartData] = useState({
+    yieldData: [],
+    budgetDistribution: [],
+    sustainabilityData: [],
+    projectData: []
+  });
+  const [isChartLoading, setIsChartLoading] = useState(true);
+  const [chartError, setChartError] = useState<string | null>(null);
 
   // Format currency
   const formatCurrency = (value: number): string => {
@@ -122,6 +100,15 @@ export const Dashboard: React.FC = () => {
     };
 
     loadKPIs();
+  }, []);
+
+  useEffect(() => {
+    setIsChartLoading(true);
+    setChartError(null);
+    dataService.fetchDashboardChartData()
+      .then(data => setChartData(data))
+      .catch(() => setChartError('Failed to load chart data'))
+      .finally(() => setIsChartLoading(false));
   }, []);
 
   // Function to render KPI cards
@@ -332,140 +319,154 @@ export const Dashboard: React.FC = () => {
           mb: 2
         }}
       >
-        {/* First row of charts */}
-        <Paper 
-          elevation={0} 
-          sx={{ 
-            p: 3, 
-            borderRadius: '12px',
-            border: `1px solid ${alpha('#217346', 0.08)}`,
-            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.06)',
-            transition: 'transform 0.3s, box-shadow 0.3s',
-            position: 'relative',
-            overflow: 'hidden',
-            '&:hover': {
-              transform: 'translateY(-5px)',
-              boxShadow: '0 8px 24px rgba(0, 0, 0, 0.12)',
-              borderColor: alpha('#217346', 0.15),
-              '&::after': {
-                opacity: 1,
-              }
-            },
-            '&::after': {
-              content: '""',
-              position: 'absolute',
-              bottom: '-5px',
-              left: '5%',
-              width: '90%',
-              height: '10px',
-              background: 'radial-gradient(ellipse at center, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0) 80%)',
-              opacity: 0,
-              transition: 'opacity 0.3s ease',
-              borderRadius: '50%',
-              zIndex: -1
-            }
-          }}
-        >
-          <Typography 
-            variant="h6" 
-            gutterBottom
-            sx={{ 
-              fontWeight: 600,
-              color: '#217346',
-              mb: 2,
-              letterSpacing: '0.3px',
-              fontSize: '1.1rem',
-              textTransform: 'uppercase',
-            }}
-          >
-            Planned vs Actual IT Spending (Monthly)
-          </Typography>
-          <Box sx={{ width: '100%', height: 300 }}>
-            {/* @ts-ignore - Ignoring type issues with ResponsiveContainer */}
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={mockYieldData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="planned" fill="#217346" />
-                <Bar dataKey="actual" fill="#2E8555" />
-              </BarChart>
-            </ResponsiveContainer>
+        {isChartLoading && (
+          <Box sx={{ width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 300 }}>
+            <CircularProgress />
           </Box>
-        </Paper>
+        )}
+        {chartError && (
+          <Box sx={{ width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 300 }}>
+            <Typography color="error">{chartError}</Typography>
+          </Box>
+        )}
+        {!isChartLoading && !chartError && (
+          <>
+            {/* First row of charts */}
+            <Paper 
+              elevation={0} 
+              sx={{ 
+                p: 3, 
+                borderRadius: '12px',
+                border: `1px solid ${alpha('#217346', 0.08)}`,
+                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.06)',
+                transition: 'transform 0.3s, box-shadow 0.3s',
+                position: 'relative',
+                overflow: 'hidden',
+                '&:hover': {
+                  transform: 'translateY(-5px)',
+                  boxShadow: '0 8px 24px rgba(0, 0, 0, 0.12)',
+                  borderColor: alpha('#217346', 0.15),
+                  '&::after': {
+                    opacity: 1,
+                  }
+                },
+                '&::after': {
+                  content: '""',
+                  position: 'absolute',
+                  bottom: '-5px',
+                  left: '5%',
+                  width: '90%',
+                  height: '10px',
+                  background: 'radial-gradient(ellipse at center, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0) 80%)',
+                  opacity: 0,
+                  transition: 'opacity 0.3s ease',
+                  borderRadius: '50%',
+                  zIndex: -1
+                }
+              }}
+            >
+              <Typography 
+                variant="h6" 
+                gutterBottom
+                sx={{ 
+                  fontWeight: 600,
+                  color: '#217346',
+                  mb: 2,
+                  letterSpacing: '0.3px',
+                  fontSize: '1.1rem',
+                  textTransform: 'uppercase',
+                }}
+              >
+                Planned vs Actual IT Spending (Monthly)
+              </Typography>
+              <Box sx={{ width: '100%', height: 300 }}>
+                {/* @ts-ignore - Ignoring type issues with ResponsiveContainer */}
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={chartData.yieldData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="month" />
+                    <YAxis />
+                    <Tooltip />
+                    <Bar dataKey="planned" fill="#217346" />
+                    <Bar dataKey="actual" fill="#2E8555" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </Box>
+            </Paper>
 
-        {/* IT Budget Distribution */}
-        <Paper 
-          elevation={0} 
-          sx={{ 
-            p: 3, 
-            borderRadius: '12px',
-            border: `1px solid ${alpha('#217346', 0.08)}`,
-            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.06)',
-            transition: 'transform 0.3s, box-shadow 0.3s',
-            position: 'relative',
-            overflow: 'hidden',
-            '&:hover': {
-              transform: 'translateY(-5px)',
-              boxShadow: '0 8px 24px rgba(0, 0, 0, 0.12)',
-              borderColor: alpha('#217346', 0.15),
-              '&::after': {
-                opacity: 1,
-              }
-            },
-            '&::after': {
-              content: '""',
-              position: 'absolute',
-              bottom: '-5px',
-              left: '5%',
-              width: '90%',
-              height: '10px',
-              background: 'radial-gradient(ellipse at center, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0) 80%)',
-              opacity: 0,
-              transition: 'opacity 0.3s ease',
-              borderRadius: '50%',
-              zIndex: -1
-            }
-          }}
-        >
-          <Typography 
-            variant="h6" 
-            gutterBottom
-            sx={{ 
-              fontWeight: 600,
-              color: '#217346',
-              mb: 2,
-              letterSpacing: '0.3px',
-              fontSize: '1.1rem',
-              textTransform: 'uppercase',
-            }}
-          >
-            IT Budget Distribution
-          </Typography>
-          <ChartContainer>
-            {/* @ts-ignore - Ignoring type issues with ResponsiveContainer */}
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={budgetDistribution}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  outerRadius={80}
-                  fill="#8884d8"
-                  dataKey="value"
-                  label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                >
-                  {budgetDistribution.map((_, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip formatter={(value) => formatCurrency(Number(value))} />
-              </PieChart>
-            </ResponsiveContainer>
-          </ChartContainer>
-        </Paper>
+            {/* IT Budget Distribution */}
+            <Paper 
+              elevation={0} 
+              sx={{ 
+                p: 3, 
+                borderRadius: '12px',
+                border: `1px solid ${alpha('#217346', 0.08)}`,
+                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.06)',
+                transition: 'transform 0.3s, box-shadow 0.3s',
+                position: 'relative',
+                overflow: 'hidden',
+                '&:hover': {
+                  transform: 'translateY(-5px)',
+                  boxShadow: '0 8px 24px rgba(0, 0, 0, 0.12)',
+                  borderColor: alpha('#217346', 0.15),
+                  '&::after': {
+                    opacity: 1,
+                  }
+                },
+                '&::after': {
+                  content: '""',
+                  position: 'absolute',
+                  bottom: '-5px',
+                  left: '5%',
+                  width: '90%',
+                  height: '10px',
+                  background: 'radial-gradient(ellipse at center, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0) 80%)',
+                  opacity: 0,
+                  transition: 'opacity 0.3s ease',
+                  borderRadius: '50%',
+                  zIndex: -1
+                }
+              }}
+            >
+              <Typography 
+                variant="h6" 
+                gutterBottom
+                sx={{ 
+                  fontWeight: 600,
+                  color: '#217346',
+                  mb: 2,
+                  letterSpacing: '0.3px',
+                  fontSize: '1.1rem',
+                  textTransform: 'uppercase',
+                }}
+              >
+                IT Budget Distribution
+              </Typography>
+              <ChartContainer>
+                {/* @ts-ignore - Ignoring type issues with ResponsiveContainer */}
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={chartData.budgetDistribution}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      outerRadius={80}
+                      fill="#8884d8"
+                      dataKey="value"
+                      label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                    >
+                      {chartData.budgetDistribution.map((_, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip formatter={(value) => formatCurrency(Number(value))} />
+                  </PieChart>
+                </ResponsiveContainer>
+              </ChartContainer>
+            </Paper>
+          </>
+        )}
       </Box>
 
       {/* Second row of charts */}
@@ -481,138 +482,142 @@ export const Dashboard: React.FC = () => {
           mb: 2
         }}
       >
-        {/* IT Performance Metrics */}
-        <Paper 
-          elevation={0} 
-          sx={{ 
-            p: 3,
-            borderRadius: '12px',
-            border: `1px solid ${alpha('#217346', 0.08)}`,
-            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.06)',
-            transition: 'transform 0.3s, box-shadow 0.3s',
-            position: 'relative',
-            overflow: 'hidden',
-            '&:hover': {
-              transform: 'translateY(-5px)',
-              boxShadow: '0 8px 24px rgba(0, 0, 0, 0.12)',
-              borderColor: alpha('#217346', 0.15),
-              '&::after': {
-                opacity: 1,
-              }
-            },
-            '&::after': {
-              content: '""',
-              position: 'absolute',
-              bottom: '-5px',
-              left: '5%',
-              width: '90%',
-              height: '10px',
-              background: 'radial-gradient(ellipse at center, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0) 80%)',
-              opacity: 0,
-              transition: 'opacity 0.3s ease',
-              borderRadius: '50%',
-              zIndex: -1
-            }
-          }}
-        >
-          <Typography 
-            variant="h6" 
-            gutterBottom
-            sx={{ 
-              fontWeight: 600,
-              color: '#217346',
-              mb: 2,
-              letterSpacing: '0.3px',
-              fontSize: '1.1rem',
-              textTransform: 'uppercase',
-            }}
-          >
-            IT Performance Metrics
-          </Typography>
-          <ChartContainer>
-            {/* @ts-ignore - Ignoring type issues with ResponsiveContainer */}
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart
-                data={mockSustainabilityData}
-                margin={{ top: 20, right: 30, left: 20, bottom: 40 }}
+        {!isChartLoading && !chartError && (
+          <>
+            {/* IT Performance Metrics */}
+            <Paper 
+              elevation={0} 
+              sx={{ 
+                p: 3,
+                borderRadius: '12px',
+                border: `1px solid ${alpha('#217346', 0.08)}`,
+                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.06)',
+                transition: 'transform 0.3s, box-shadow 0.3s',
+                position: 'relative',
+                overflow: 'hidden',
+                '&:hover': {
+                  transform: 'translateY(-5px)',
+                  boxShadow: '0 8px 24px rgba(0, 0, 0, 0.12)',
+                  borderColor: alpha('#217346', 0.15),
+                  '&::after': {
+                    opacity: 1,
+                  }
+                },
+                '&::after': {
+                  content: '""',
+                  position: 'absolute',
+                  bottom: '-5px',
+                  left: '5%',
+                  width: '90%',
+                  height: '10px',
+                  background: 'radial-gradient(ellipse at center, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0) 80%)',
+                  opacity: 0,
+                  transition: 'opacity 0.3s ease',
+                  borderRadius: '50%',
+                  zIndex: -1
+                }
+              }}
+            >
+              <Typography 
+                variant="h6" 
+                gutterBottom
+                sx={{ 
+                  fontWeight: 600,
+                  color: '#217346',
+                  mb: 2,
+                  letterSpacing: '0.3px',
+                  fontSize: '1.1rem',
+                  textTransform: 'uppercase',
+                }}
               >
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="A" fill="#217346" name="Current Year" />
-                <Bar dataKey="B" fill="#3C9F6A" name="Previous Year" />
-              </BarChart>
-            </ResponsiveContainer>
-          </ChartContainer>
-        </Paper>
+                IT Performance Metrics
+              </Typography>
+              <ChartContainer>
+                {/* @ts-ignore - Ignoring type issues with ResponsiveContainer */}
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={chartData.sustainabilityData}
+                    margin={{ top: 20, right: 30, left: 20, bottom: 40 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="name" />
+                    <YAxis />
+                    <Tooltip />
+                    <Bar dataKey="A" fill="#217346" name="Current Year" />
+                    <Bar dataKey="B" fill="#3C9F6A" name="Previous Year" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </ChartContainer>
+            </Paper>
 
-        {/* Project Budget Utilization */}
-        <Paper 
-          elevation={0} 
-          sx={{ 
-            p: 3,
-            borderRadius: '12px',
-            border: `1px solid ${alpha('#217346', 0.08)}`,
-            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.06)',
-            transition: 'transform 0.3s, box-shadow 0.3s',
-            position: 'relative',
-            overflow: 'hidden',
-            '&:hover': {
-              transform: 'translateY(-5px)',
-              boxShadow: '0 8px 24px rgba(0, 0, 0, 0.12)',
-              borderColor: alpha('#217346', 0.15),
-              '&::after': {
-                opacity: 1,
-              }
-            },
-            '&::after': {
-              content: '""',
-              position: 'absolute',
-              bottom: '-5px',
-              left: '5%',
-              width: '90%',
-              height: '10px',
-              background: 'radial-gradient(ellipse at center, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0) 80%)',
-              opacity: 0,
-              transition: 'opacity 0.3s ease',
-              borderRadius: '50%',
-              zIndex: -1
-            }
-          }}
-        >
-          <Typography 
-            variant="h6" 
-            gutterBottom
-            sx={{ 
-              fontWeight: 600,
-              color: '#217346',
-              mb: 2,
-              letterSpacing: '0.3px',
-              fontSize: '1.1rem',
-              textTransform: 'uppercase',
-            }}
-          >
-            Project Budget Utilization
-          </Typography>
-          <ChartContainer>
-            {/* @ts-ignore - Ignoring type issues with ResponsiveContainer */}
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart
-                data={mockProjectData}
-                margin={{ top: 20, right: 30, left: 20, bottom: 40 }}
-                layout="vertical"
+            {/* Project Budget Utilization */}
+            <Paper 
+              elevation={0} 
+              sx={{ 
+                p: 3,
+                borderRadius: '12px',
+                border: `1px solid ${alpha('#217346', 0.08)}`,
+                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.06)',
+                transition: 'transform 0.3s, box-shadow 0.3s',
+                position: 'relative',
+                overflow: 'hidden',
+                '&:hover': {
+                  transform: 'translateY(-5px)',
+                  boxShadow: '0 8px 24px rgba(0, 0, 0, 0.12)',
+                  borderColor: alpha('#217346', 0.15),
+                  '&::after': {
+                    opacity: 1,
+                  }
+                },
+                '&::after': {
+                  content: '""',
+                  position: 'absolute',
+                  bottom: '-5px',
+                  left: '5%',
+                  width: '90%',
+                  height: '10px',
+                  background: 'radial-gradient(ellipse at center, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0) 80%)',
+                  opacity: 0,
+                  transition: 'opacity 0.3s ease',
+                  borderRadius: '50%',
+                  zIndex: -1
+                }
+              }}
+            >
+              <Typography 
+                variant="h6" 
+                gutterBottom
+                sx={{ 
+                  fontWeight: 600,
+                  color: '#217346',
+                  mb: 2,
+                  letterSpacing: '0.3px',
+                  fontSize: '1.1rem',
+                  textTransform: 'uppercase',
+                }}
               >
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis type="number" />
-                <YAxis dataKey="name" type="category" />
-                <Tooltip />
-                <Bar dataKey="used" stackId="a" fill="#217346" name="Used" />
-                <Bar dataKey="remaining" stackId="a" fill="#3C9F6A" name="Remaining" />
-              </BarChart>
-            </ResponsiveContainer>
-          </ChartContainer>
-        </Paper>
+                Project Budget Utilization
+              </Typography>
+              <ChartContainer>
+                {/* @ts-ignore - Ignoring type issues with ResponsiveContainer */}
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={chartData.projectData}
+                    margin={{ top: 20, right: 30, left: 20, bottom: 40 }}
+                    layout="vertical"
+                  >
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis type="number" />
+                    <YAxis dataKey="name" type="category" />
+                    <Tooltip />
+                    <Bar dataKey="used" stackId="a" fill="#217346" name="Used" />
+                    <Bar dataKey="remaining" stackId="a" fill="#3C9F6A" name="Remaining" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </ChartContainer>
+            </Paper>
+          </>
+        )}
       </Box>
     </Box>
   );

@@ -19,6 +19,7 @@ import {
   Grid
 } from '@mui/material';
 import { dataService, DataSourceType, DataConfig, DatabricksConfig } from '../services/dataService';
+import { useData } from '../context/DataContext';
 
 const DataSourceConfig: React.FC = () => {
   // Current config state
@@ -46,6 +47,8 @@ const DataSourceConfig: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
   const [showSnackbar, setShowSnackbar] = useState(false);
+  
+  const { usingMockFallback } = useData();
   
   // Load current configuration
   useEffect(() => {
@@ -241,9 +244,17 @@ const DataSourceConfig: React.FC = () => {
   return (
     <Box sx={{ p: 2 }}>
       <Card>
-        <CardHeader 
-          title="Data Source Configuration" 
-          subheader="Configure how the application connects to your data"
+        <CardHeader
+          title={usingMockFallback ? (
+            <Typography variant="h4" color="warning.main" fontWeight={700}>
+              Mock Data ⚠️
+            </Typography>
+          ) : (
+            'Data Source Configuration'
+          )}
+          subheader={usingMockFallback
+            ? 'Unable to connect to the selected data source. Mock/demo data is being shown.'
+            : 'Configure how the application connects to your data'}
         />
         
         <CardContent>

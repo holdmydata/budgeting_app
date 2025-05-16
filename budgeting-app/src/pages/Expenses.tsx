@@ -33,67 +33,8 @@ import AddIcon from '@mui/icons-material/Add';
 import DownloadIcon from '@mui/icons-material/Download';
 import { useData } from '../context/DataContext';
 import { FinancialTransaction } from '../types/data';
-import { mockGLAccountLookup, mockProjectLookup, mockVendorLookup } from '../services/mockData';
+import { dataService } from '../services/dataService';
 import ExpenseFormModal from '../modals/ExpenseFormModal';
-
-// Column definition for the table
-interface Column {
-  id: keyof FinancialTransaction | 'glAccountName' | 'projectName' | 'vendorName';
-  label: string;
-  minWidth?: number;
-  align?: 'right' | 'left' | 'center';
-  format?: (value: any, row: FinancialTransaction) => React.ReactNode;
-}
-
-const columns: Column[] = [
-  { 
-    id: 'date', 
-    label: 'Date', 
-    minWidth: 120,
-    format: (value: string) => new Date(value).toLocaleDateString()
-  },
-  { 
-    id: 'glAccountName', 
-    label: 'GL Account',
-    minWidth: 180,
-    format: (_: string, row: FinancialTransaction) => mockGLAccountLookup[row.glAccount] || '-'
-  },
-  { 
-    id: 'projectName', 
-    label: 'Project',
-    minWidth: 160,
-    format: (_: string, row: FinancialTransaction) => mockProjectLookup[row.project] || '-'
-  },
-  { 
-    id: 'description', 
-    label: 'Description', 
-    minWidth: 200 
-  },
-  { 
-    id: 'amount', 
-    label: 'Amount', 
-    minWidth: 120,
-    align: 'right',
-    format: (value: number) => value.toLocaleString('en-US', { style: 'currency', currency: 'USD' })
-  },
-  { 
-    id: 'voucherNumber', 
-    label: 'Reference', 
-    minWidth: 120 
-  },
-  { 
-    id: 'vendorName', 
-    label: 'Vendor',
-    minWidth: 180,
-    format: (_: string, row: FinancialTransaction) => mockVendorLookup[row.vendor] || '-'
-  },
-  {
-    id: 'status',
-    label: 'Status',
-    minWidth: 120,
-    format: (value: string) => value
-  }
-];
 
 // Type for sorting order
 type Order = 'asc' | 'desc';
@@ -123,7 +64,20 @@ export const ExpensesPage: React.FC = () => {
   const [selectedTransaction, setSelectedTransaction] = useState<FinancialTransaction | null>(null);
   const [openModal, setOpenModal] = useState(false);
   const [modalMode, setModalMode] = useState<'add' | 'edit'>('add');
+  const [glAccountLookup, setGLAccountLookup] = useState<Record<string, string>>({});
+  const [projectLookup, setProjectLookup] = useState<Record<string, string>>({});
+  const [vendorLookup, setVendorLookup] = useState<Record<string, string>>({});
+  const [isLookupsLoading, setIsLookupsLoading] = useState(true);
+  const [lookupsError, setLookupsError] = useState<string | null>(null);
 
+  // Column definition for the table
+  interface Column {
+    id: keyof FinancialTransaction | 'glAccountName' | 'projectName' | 'vendorName';
+    label: string;
+    minWidth?: number;
+    align?: 'right' | 'left' | 'center';
+    format?: (value: any, row: FinancialTransaction) => React.ReactNode;
+  }
 
   // Fetch transactions when filters change
   useEffect(() => {
@@ -167,6 +121,23 @@ export const ExpensesPage: React.FC = () => {
 
     loadTransactions();
   }, [fetchTransactions, dateFilter, searchQuery]);
+
+  useEffect(() => {
+    setIsLookupsLoading(true);
+    setLookupsError(null);
+    Promise.all([
+      dataService.fetchGLAccountLookup?.(),
+      dataService.fetchProjectLookup?.(),
+      dataService.fetchVendorLookup?.()
+    ])
+      .then(([gl, proj, vend]) => {
+        setGLAccountLookup(gl || {});
+        setProjectLookup(proj || {});
+        setVendorLookup(vend || {});
+      })
+      .catch(() => setLookupsError('Failed to load lookup data'))
+      .finally(() => setIsLookupsLoading(false));
+  }, []);
 
   const handleRequestSort = (property: keyof FinancialTransaction) => {
     const isAsc = orderBy === property && order === 'asc';
@@ -238,6 +209,64 @@ export const ExpensesPage: React.FC = () => {
 
   // Apply pagination
   const paginatedTransactions = sortedTransactions.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
+
+  // Show loading or error for lookups
+  if (isLookupsLoading) {
+    return <Box sx={{ p: 4, textAlign: 'center' }}><LinearProgress /><Typography>Loading lookup data...</Typography></Box>;
+  }
+  if (lookupsError) {
+    return <Box sx={{ p: 4, textAlign: 'center' }}><Alert severity="error">{lookupsError}</Alert></Box>;
+  }
+
+  const columns: Column[] = [
+    { 
+      id: 'date', 
+      label: 'Date', 
+      minWidth: 120,
+      format: (value: string) => new Date(value).toLocaleDateString()
+    },
+    { 
+      id: 'glAccountName', 
+      label: 'GL Account',
+      minWidth: 180,
+      format: (_: string, row: FinancialTransaction) => glAccountLookup[row.glAccount] || '-'
+    },
+    { 
+      id: 'projectName', 
+      label: 'Project',
+      minWidth: 160,
+      format: (_: string, row: FinancialTransaction) => projectLookup[row.project] || '-'
+    },
+    { 
+      id: 'description', 
+      label: 'Description', 
+      minWidth: 200 
+    },
+    { 
+      id: 'amount', 
+      label: 'Amount', 
+      minWidth: 120,
+      align: 'right',
+      format: (value: number) => value.toLocaleString('en-US', { style: 'currency', currency: 'USD' })
+    },
+    { 
+      id: 'voucherNumber', 
+      label: 'Reference', 
+      minWidth: 120 
+    },
+    { 
+      id: 'vendorName', 
+      label: 'Vendor',
+      minWidth: 180,
+      format: (_: string, row: FinancialTransaction) => vendorLookup[row.vendor] || '-'
+    },
+    {
+      id: 'status',
+      label: 'Status',
+      minWidth: 120,
+      format: (value: string) => value
+    }
+  ];
 
   return (
     <Container maxWidth={false} sx={{ mt: 2 }}>

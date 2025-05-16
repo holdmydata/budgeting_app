@@ -27,6 +27,7 @@ import InsightsIcon from '@mui/icons-material/Insights';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { useData } from '../../context/DataContext';
 
 interface HeaderProps {
   drawerWidth: number;
@@ -46,6 +47,7 @@ const Header: React.FC<HeaderProps> = ({
   const { user, logout } = useAuth();
   const [userMenuAnchor, setUserMenuAnchor] = React.useState<null | HTMLElement>(null);
   const [notificationsAnchor, setNotificationsAnchor] = React.useState<null | HTMLElement>(null);
+  const { connectionType, usingMockFallback } = useData();
 
   const handleUserMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
     setUserMenuAnchor(event.currentTarget);
@@ -214,6 +216,25 @@ const Header: React.FC<HeaderProps> = ({
               }}>
                 {currentPageTitle || 'Hold My Budget'}
               </Box>
+              {/* Mock fallback warning chip */}
+              {usingMockFallback && (
+                <Chip
+                  icon={<span style={{ fontSize: 18 }}>⚠️</span>}
+                  label="Mock Data Fallback"
+                  size="small"
+                  sx={{
+                    ml: 1,
+                    bgcolor: '#fffbe6',
+                    color: '#ad6800',
+                    fontWeight: 700,
+                    border: '1px solid #ffe58f',
+                    fontSize: '0.8rem',
+                    height: 26,
+                    letterSpacing: '0.2px',
+                    boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
+                  }}
+                />
+              )}
             </Typography>
             
             {userRole && (

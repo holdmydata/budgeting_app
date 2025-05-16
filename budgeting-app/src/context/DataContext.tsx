@@ -82,6 +82,7 @@ interface DataContextType {
   addVendor: (vendor: Vendor) => Promise<Vendor>;
   updateVendor: (vendor: Vendor) => Promise<Vendor>;
   deleteVendor: (vendorId: string) => Promise<void>;
+  usingMockFallback: boolean;
 }
 
 // Create the context
@@ -99,6 +100,7 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
   const [databricksConfig, setDatabricksConfig] = useState<DatabricksConfig | null>(null);
   const [sqlServerConfig, setSqlServerConfig] = useState<SqlServerConfig | null>(null);
   const [sessionId, setSessionId] = useState<string | null>(null);
+  const [usingMockFallback, setUsingMockFallback] = useState(false);
 
   // Clean up connections when unmounting or when connection type changes
   React.useEffect(() => {
@@ -144,6 +146,7 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
   // Helper function to make authenticated API calls
   const fetchWithAuth = async <T,>(url: string, options: RequestInit = {}): Promise<T> => {
     if (useMockData || connectionType === ConnectionType.MOCK) {
+      setUsingMockFallback(false); // Explicit mock mode, not fallback
       // Return mock data based on the URL pattern
       console.log('Using mock data instead of API call to:', url);
       await new Promise(resolve => setTimeout(resolve, 500)); // Simulate network delay
@@ -184,12 +187,14 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
       }
 
       const data = await response.json();
+      setUsingMockFallback(false); // Successfully fetched live data
       return data as T;
     } catch (error) {
       console.error('API call failed:', error);
       
       // Fallback to mock data on API failure
       console.log('Falling back to mock data');
+      setUsingMockFallback(true); // Fallback to mock data
       if (url.includes('/api/kpis')) return mockKPIs as unknown as T;
       if (url.includes('/api/projects')) {
         if (url.includes('/api/projects/')) {
@@ -340,6 +345,7 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
   // Function to fetch dashboard KPIs
   const fetchDashboardKPIs = async (): Promise<KPI[]> => {
     if (useMockData || connectionType === ConnectionType.MOCK) {
+      setUsingMockFallback(false); // Explicit mock mode
       console.log('Using mock KPI data');
       await new Promise(resolve => setTimeout(resolve, 500)); // Simulate network delay
       return [...mockKPIs];
@@ -354,10 +360,12 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
         const response = await axios.get(`${SERVER_URL}/api/kpis`, {
           params: { sessionId }
         });
+        setUsingMockFallback(false); // Live data success
         return response.data;
       } catch (error) {
         console.error('Failed to fetch KPIs from Databricks:', error);
         // Fallback to mock data on error
+        setUsingMockFallback(true); // Fallback
         return [...mockKPIs];
       }
     }
@@ -366,43 +374,45 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
       try {
         // For SQL Server, execute a query to get KPIs
         const query = `SELECT id, title, value, formattedValue, change, secondaryValue FROM kpi_view`;
-        return await executeSqlQuery(query);
+        const data = await executeSqlQuery(query);
+        setUsingMockFallback(false);
+        return data;
       } catch (error) {
         console.error('Failed to fetch KPIs from SQL Server:', error);
         // Fallback to mock data on error
+        setUsingMockFallback(true);
         return [...mockKPIs];
       }
     }
 
+    setUsingMockFallback(true);
     return [...mockKPIs]; // Default fallback
   };
 
   // Function to fetch projects
   const fetchProjects = async (): Promise<Project[]> => {
     if (useMockData || connectionType === ConnectionType.MOCK) {
+      setUsingMockFallback(false);
       console.log('Using mock project data');
       await new Promise(resolve => setTimeout(resolve, 500)); // Simulate network delay
       return [...mockProjects];
     }
-
     if (connectionType === ConnectionType.DATABRICKS) {
       if (!sessionId) {
         await connectToDatabricks();
       }
-      
       try {
         const response = await axios.get(`${SERVER_URL}/api/projects`, {
           params: { sessionId }
         });
+        setUsingMockFallback(false);
         return response.data;
       } catch (error) {
-        console.error('Failed to fetch projects from Databricks:', error);
-        // Fallback to mock data on error
+        setUsingMockFallback(true);
         return [...mockProjects];
       }
     }
-
-    // Fallback to mock data
+    setUsingMockFallback(true);
     return [...mockProjects];
   };
 
@@ -419,9 +429,9 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
   // Function to fetch GL accounts
   const fetchGLAccounts = async (filters?: object): Promise<GLAccount[]> => {
     if (useMockData || connectionType === ConnectionType.MOCK) {
+      setUsingMockFallback(false);
       console.log('Using mock GL account data');
       await new Promise(resolve => setTimeout(resolve, 500)); // Simulate network delay
-      
       if (filters) {
         return mockGLAccounts.filter(account => {
           return Object.entries(filters).every(([key, value]) => {
@@ -430,41 +440,33 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
           });
         });
       }
-      
       return [...mockGLAccounts];
     }
-
     if (connectionType === ConnectionType.DATABRICKS) {
       if (!sessionId) {
         await connectToDatabricks();
       }
-      
       try {
         const response = await axios.get(`${SERVER_URL}/api/gl-accounts`, {
-          params: { 
-            sessionId,
-            ...filters
-          }
+          params: { sessionId, ...filters }
         });
+        setUsingMockFallback(false);
         return response.data;
       } catch (error) {
-        console.error('Failed to fetch GL accounts from Databricks:', error);
-        // Fallback to mock data on error
+        setUsingMockFallback(true);
         return [...mockGLAccounts];
       }
     }
-
-    // Fallback to mock data
+    setUsingMockFallback(true);
     return [...mockGLAccounts];
   };
 
-  
   // Function to fetch transactions
   const fetchTransactions = async (filters: object = {}): Promise<FinancialTransaction[]> => {
     if (useMockData || connectionType === ConnectionType.MOCK) {
+      setUsingMockFallback(false);
       console.log('Using mock transaction data');
       await new Promise(resolve => setTimeout(resolve, 500)); // Simulate network delay
-      
       if (Object.keys(filters).length > 0) {
         return mockTransactions.filter(transaction => {
           return Object.entries(filters).every(([key, value]) => {
@@ -473,40 +475,33 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
           });
         });
       }
-      
       return [...mockTransactions];
     }
-
     if (connectionType === ConnectionType.DATABRICKS) {
       if (!sessionId) {
         await connectToDatabricks();
       }
-      
       try {
         const response = await axios.get(`${SERVER_URL}/api/transactions`, {
-          params: { 
-            sessionId,
-            ...filters
-          }
+          params: { sessionId, ...filters }
         });
+        setUsingMockFallback(false);
         return response.data;
       } catch (error) {
-        console.error('Failed to fetch transactions from Databricks:', error);
-        // Fallback to mock data on error
+        setUsingMockFallback(true);
         return [...mockTransactions];
       }
     }
-
-    // Fallback to mock data
+    setUsingMockFallback(true);
     return [...mockTransactions];
   };
 
   // Function to fetch budget entries
   const fetchBudgetEntries = async (filters: object = {}): Promise<BudgetEntry[]> => {
     if (useMockData || connectionType === ConnectionType.MOCK) {
+      setUsingMockFallback(false);
       console.log('Using mock budget data');
       await new Promise(resolve => setTimeout(resolve, 500)); // Simulate network delay
-      
       if (Object.keys(filters).length > 0) {
         return mockBudgetEntries.filter(entry => {
           return Object.entries(filters).every(([key, value]) => {
@@ -515,31 +510,24 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
           });
         });
       }
-      
       return [...mockBudgetEntries];
     }
-
     if (connectionType === ConnectionType.DATABRICKS) {
       if (!sessionId) {
         await connectToDatabricks();
       }
-      
       try {
         const response = await axios.get(`${SERVER_URL}/api/budget-entries`, {
-          params: { 
-            sessionId,
-            ...filters
-          }
+          params: { sessionId, ...filters }
         });
+        setUsingMockFallback(false);
         return response.data;
       } catch (error) {
-        console.error('Failed to fetch budget entries from Databricks:', error);
-        // Fallback to mock data on error
+        setUsingMockFallback(true);
         return [...mockBudgetEntries];
       }
     }
-
-    // Fallback to mock data
+    setUsingMockFallback(true);
     return [...mockBudgetEntries];
   };
 
@@ -650,6 +638,7 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
     addVendor,
     updateVendor,
     deleteVendor,
+    usingMockFallback,
   };
 
   return (

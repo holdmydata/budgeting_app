@@ -402,3 +402,61 @@ export const mockVendors: Vendor[] = [
     updatedAt: '2023-03-20T00:00:00Z'
   }
 ];
+
+// Dashboard mock chart data
+export const mockDashboardYieldData = [
+  { month: 'Jan', planned: 250000, actual: 240000 },
+  { month: 'Feb', planned: 300000, actual: 290000 },
+  { month: 'Mar', planned: 280000, actual: 275000 },
+  { month: 'Apr', planned: 310000, actual: 305000 },
+  { month: 'May', planned: 340000, actual: 325000 },
+  { month: 'Jun', planned: 290000, actual: 300000 }
+];
+
+export const mockDashboardBudgetDistribution = [
+  { name: 'Infrastructure', value: 1200000 },
+  { name: 'Software', value: 800000 },
+  { name: 'Services', value: 950000 },
+  { name: 'Personnel', value: 650000 },
+  { name: 'Other', value: 150000 }
+];
+
+export const mockDashboardSustainabilityData = [
+  { name: 'ROI', A: 70, B: 65 },
+  { name: 'Uptime', A: 99.9, B: 99.5 },
+  { name: 'Response Time', A: 85, B: 75 },
+  { name: 'Customer Sat', A: 90, B: 82 }
+];
+
+export const mockDashboardProjectData = [
+  { name: 'ERP System', used: 450000, remaining: 150000 },
+  { name: 'Network Infra', used: 380000, remaining: 120000 },
+  { name: 'Cloud Migration', used: 275000, remaining: 225000 },
+  { name: 'Security', used: 190000, remaining: 260000 }
+];
+
+// Mock user profile data
+export const mockUserProfile = {
+  id: 'user-1',
+  name: 'Jane Doe',
+  email: 'jane.doe@example.com',
+  role: 'Admin',
+  avatarUrl: 'https://randomuser.me/api/portraits/women/44.jpg',
+  organization: 'Acme Corp',
+  lastLogin: '2024-06-01T10:00:00Z',
+  preferences: {
+    theme: 'light',
+    language: 'en',
+    notifications: true
+  }
+};
+
+// Mock user settings data
+export const mockUserSettings = {
+  theme: 'light',
+  language: 'en',
+  notifications: true,
+  dashboardLayout: 'default',
+  dataSource: 'mock',
+  itemsPerPage: 10
+};

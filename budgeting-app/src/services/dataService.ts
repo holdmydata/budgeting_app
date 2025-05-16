@@ -1,5 +1,21 @@
 import { KPI, GLAccount, Project, FinancialTransaction, BudgetEntry } from '../types/data';
-import { mockKPIs, mockGLAccounts, mockProjects, mockTransactions, mockBudgetEntries } from './mockData';
+import {
+  mockKPIs,
+  mockGLAccounts,
+  mockProjects,
+  mockTransactions,
+  mockBudgetEntries,
+  mockUserProfile,
+  mockUserSettings,
+  mockDashboardYieldData,
+  mockDashboardBudgetDistribution,
+  mockDashboardSustainabilityData,
+  mockDashboardProjectData,
+  mockVendors,
+  mockGLAccountLookup,
+  mockProjectLookup,
+  mockVendorLookup
+} from './mockData';
 import axios from 'axios';
 
 // Data source types
@@ -49,6 +65,7 @@ export class DataService {
   private sessionId: string | null = null;
   private serverUrl: string = import.meta.env.VITE_API_URL || 'http://localhost:5000';
   private graphqlUrl: string = import.meta.env.VITE_GRAPHQL_URL || 'http://localhost:5000/graphql';
+  private usingMockFallback: boolean = false;
 
   // Private constructor for singleton pattern
   private constructor(config: DataConfig) {
@@ -161,6 +178,7 @@ export class DataService {
       const configType = this.config.type;
       switch (configType) {
         case DataSourceType.MOCK:
+          this.usingMockFallback = false;
           await this.mockDelay();
           return [...mockKPIs];
           
@@ -175,6 +193,7 @@ export class DataService {
             }
           });
           
+          this.usingMockFallback = false;
           return response.data;
           
         case DataSourceType.API:
@@ -186,6 +205,7 @@ export class DataService {
             }
           });
           
+          this.usingMockFallback = false;
           return apiResponse.data;
           
         default:
@@ -193,6 +213,7 @@ export class DataService {
       }
     } catch (error) {
       console.error('Error fetching KPIs:', error);
+      this.usingMockFallback = true;
       // Fallback to mock data
       return [...mockKPIs];
     }
@@ -204,6 +225,7 @@ export class DataService {
       const configType = this.config.type;
       switch (configType) {
         case DataSourceType.MOCK:
+          this.usingMockFallback = false;
           await this.mockDelay();
           let accounts = [...mockGLAccounts];
           
@@ -231,6 +253,7 @@ export class DataService {
             }
           });
           
+          this.usingMockFallback = false;
           return response.data;
           
         case DataSourceType.API:
@@ -243,6 +266,7 @@ export class DataService {
             }
           });
           
+          this.usingMockFallback = false;
           return apiResponse.data;
           
         default:
@@ -250,6 +274,7 @@ export class DataService {
       }
     } catch (error) {
       console.error('Error fetching GL accounts:', error);
+      this.usingMockFallback = true;
       // Fallback to mock data
       return [...mockGLAccounts];
     }
@@ -307,6 +332,7 @@ export class DataService {
       }
     } catch (error) {
       console.error('Error fetching projects:', error);
+      this.usingMockFallback = true;
       // Fallback to mock data
       return [...mockProjects];
     }
@@ -351,6 +377,7 @@ export class DataService {
       }
     } catch (error) {
       console.error(`Error fetching project with ID ${id}:`, error);
+      this.usingMockFallback = true;
       // Fallback to mock data
       return mockProjects.find(project => project.id === id) || null;
     }
@@ -408,6 +435,7 @@ export class DataService {
       }
     } catch (error) {
       console.error('Error fetching transactions:', error);
+      this.usingMockFallback = true;
       // Fallback to mock data
       return [...mockTransactions];
     }
@@ -465,6 +493,7 @@ export class DataService {
       }
     } catch (error) {
       console.error('Error fetching budget entries:', error);
+      this.usingMockFallback = true;
       // Fallback to mock data
       return [...mockBudgetEntries];
     }
@@ -513,11 +542,228 @@ export class DataService {
     }
   }
 
+  // Fetch user profile
+  public async fetchUserProfile(): Promise<any> {
+    try {
+      const configType = this.config.type;
+      switch (configType) {
+        case DataSourceType.MOCK:
+          await this.mockDelay();
+          return { ...mockUserProfile };
+        case DataSourceType.DATABRICKS:
+        case DataSourceType.API:
+          // Example endpoint, adjust as needed
+          const apiConfig = this.config as ApiConfig;
+          const response = await axios.get(`${apiConfig.baseUrl}/api/user/profile`, {
+            headers: {
+              ...(apiConfig.headers || {}),
+              ...(apiConfig.apiKey ? { 'Authorization': `Bearer ${apiConfig.apiKey}` } : {})
+            }
+          });
+          return response.data;
+        default:
+          throw new Error(`Unsupported data source type: ${configType}`);
+      }
+    } catch (error) {
+      console.error('Error fetching user profile:', error);
+      this.usingMockFallback = true;
+      return { ...mockUserProfile };
+    }
+  }
+
+  // Fetch user settings
+  public async fetchUserSettings(): Promise<any> {
+    try {
+      const configType = this.config.type;
+      switch (configType) {
+        case DataSourceType.MOCK:
+          await this.mockDelay();
+          return { ...mockUserSettings };
+        case DataSourceType.DATABRICKS:
+        case DataSourceType.API:
+          // Example endpoint, adjust as needed
+          const apiConfig = this.config as ApiConfig;
+          const response = await axios.get(`${apiConfig.baseUrl}/api/user/settings`, {
+            headers: {
+              ...(apiConfig.headers || {}),
+              ...(apiConfig.apiKey ? { 'Authorization': `Bearer ${apiConfig.apiKey}` } : {})
+            }
+          });
+          return response.data;
+        default:
+          throw new Error(`Unsupported data source type: ${configType}`);
+      }
+    } catch (error) {
+      console.error('Error fetching user settings:', error);
+      this.usingMockFallback = true;
+      return { ...mockUserSettings };
+    }
+  }
+
+  // Fetch dashboard chart data
+  public async fetchDashboardChartData(): Promise<any> {
+    try {
+      const configType = this.config.type;
+      switch (configType) {
+        case DataSourceType.MOCK:
+          await this.mockDelay();
+          return {
+            yieldData: [...mockDashboardYieldData],
+            budgetDistribution: [...mockDashboardBudgetDistribution],
+            sustainabilityData: [...mockDashboardSustainabilityData],
+            projectData: [...mockDashboardProjectData]
+          };
+        case DataSourceType.DATABRICKS:
+        case DataSourceType.API:
+          // Example endpoint, adjust as needed
+          const apiConfig = this.config as ApiConfig;
+          const response = await axios.get(`${apiConfig.baseUrl}/api/dashboard/chart-data`, {
+            headers: {
+              ...(apiConfig.headers || {}),
+              ...(apiConfig.apiKey ? { 'Authorization': `Bearer ${apiConfig.apiKey}` } : {})
+            }
+          });
+          return response.data;
+        default:
+          throw new Error(`Unsupported data source type: ${configType}`);
+      }
+    } catch (error) {
+      console.error('Error fetching dashboard chart data:', error);
+      this.usingMockFallback = true;
+      return {
+        yieldData: [...mockDashboardYieldData],
+        budgetDistribution: [...mockDashboardBudgetDistribution],
+        sustainabilityData: [...mockDashboardSustainabilityData],
+        projectData: [...mockDashboardProjectData]
+      };
+    }
+  }
+
+  // Fetch Vendors
+  public async fetchVendors(): Promise<any[]> {
+    try {
+      const configType = this.config.type;
+      switch (configType) {
+        case DataSourceType.MOCK:
+          await this.mockDelay();
+          return [...mockVendors];
+        case DataSourceType.DATABRICKS:
+        case DataSourceType.API:
+          // Example endpoint, adjust as needed
+          const apiConfig = this.config as ApiConfig;
+          const response = await axios.get(`${apiConfig.baseUrl}/api/vendors`, {
+            headers: {
+              ...(apiConfig.headers || {}),
+              ...(apiConfig.apiKey ? { 'Authorization': `Bearer ${apiConfig.apiKey}` } : {})
+            }
+          });
+          return response.data;
+        default:
+          throw new Error(`Unsupported data source type: ${configType}`);
+      }
+    } catch (error) {
+      console.error('Error fetching vendors:', error);
+      this.usingMockFallback = true;
+      return [...mockVendors];
+    }
+  }
+
+  // Fetch GL Account Lookup
+  public async fetchGLAccountLookup(): Promise<Record<string, string>> {
+    try {
+      const configType = this.config.type;
+      switch (configType) {
+        case DataSourceType.MOCK:
+          await this.mockDelay();
+          return { ...mockGLAccountLookup };
+        case DataSourceType.DATABRICKS:
+        case DataSourceType.API:
+          // Example endpoint, adjust as needed
+          const apiConfig = this.config as ApiConfig;
+          const response = await axios.get(`${apiConfig.baseUrl}/api/gl-account-lookup`, {
+            headers: {
+              ...(apiConfig.headers || {}),
+              ...(apiConfig.apiKey ? { 'Authorization': `Bearer ${apiConfig.apiKey}` } : {})
+            }
+          });
+          return response.data;
+        default:
+          throw new Error(`Unsupported data source type: ${configType}`);
+      }
+    } catch (error) {
+      console.error('Error fetching GL Account lookup:', error);
+      this.usingMockFallback = true;
+      return { ...mockGLAccountLookup };
+    }
+  }
+
+  // Fetch Project Lookup
+  public async fetchProjectLookup(): Promise<Record<string, string>> {
+    try {
+      const configType = this.config.type;
+      switch (configType) {
+        case DataSourceType.MOCK:
+          await this.mockDelay();
+          return { ...mockProjectLookup };
+        case DataSourceType.DATABRICKS:
+        case DataSourceType.API:
+          // Example endpoint, adjust as needed
+          const apiConfig = this.config as ApiConfig;
+          const response = await axios.get(`${apiConfig.baseUrl}/api/project-lookup`, {
+            headers: {
+              ...(apiConfig.headers || {}),
+              ...(apiConfig.apiKey ? { 'Authorization': `Bearer ${apiConfig.apiKey}` } : {})
+            }
+          });
+          return response.data;
+        default:
+          throw new Error(`Unsupported data source type: ${configType}`);
+      }
+    } catch (error) {
+      console.error('Error fetching Project lookup:', error);
+      this.usingMockFallback = true;
+      return { ...mockProjectLookup };
+    }
+  }
+
+  // Fetch Vendor Lookup
+  public async fetchVendorLookup(): Promise<Record<string, string>> {
+    try {
+      const configType = this.config.type;
+      switch (configType) {
+        case DataSourceType.MOCK:
+          await this.mockDelay();
+          return { ...mockVendorLookup };
+        case DataSourceType.DATABRICKS:
+        case DataSourceType.API:
+          // Example endpoint, adjust as needed
+          const apiConfig = this.config as ApiConfig;
+          const response = await axios.get(`${apiConfig.baseUrl}/api/vendor-lookup`, {
+            headers: {
+              ...(apiConfig.headers || {}),
+              ...(apiConfig.apiKey ? { 'Authorization': `Bearer ${apiConfig.apiKey}` } : {})
+            }
+          });
+          return response.data;
+        default:
+          throw new Error(`Unsupported data source type: ${configType}`);
+      }
+    } catch (error) {
+      console.error('Error fetching Vendor lookup:', error);
+      this.usingMockFallback = true;
+      return { ...mockVendorLookup };
+    }
+  }
+
   // Cleanup function - call when application closes
   public async cleanup(): Promise<void> {
     if (this.config.type === DataSourceType.DATABRICKS && this.sessionId) {
       await this.disconnectFromDatabricks();
     }
+  }
+
+  public isUsingMockFallback(): boolean {
+    return this.usingMockFallback;
   }
 }
 

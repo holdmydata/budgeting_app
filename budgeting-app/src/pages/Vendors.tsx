@@ -21,14 +21,15 @@ import {
   Button,
   Rating,
   useTheme,
-  useMediaQuery
+  useMediaQuery,
+  Alert
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import FilterListIcon from '@mui/icons-material/FilterList';
 import AddIcon from '@mui/icons-material/Add';
 import { useData } from '../context/DataContext';
 import { Vendor } from '../types/data';
-import { mockVendors } from '../services/mockData';
+import { dataService } from '../services/dataService';
 import VendorFormModal from '../modals/VendorFormModal';
 
 
@@ -86,7 +87,9 @@ export const Vendors: React.FC = () => {
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const { isLoading, addVendor, updateVendor } = useData();
   
-  const [vendors, setVendors] = useState<Vendor[]>(mockVendors);
+  const [vendors, setVendors] = useState<Vendor[]>([]);
+  const [isLoadingVendors, setIsLoadingVendors] = useState(true);
+  const [vendorsError, setVendorsError] = useState<string | null>(null);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [searchQuery, setSearchQuery] = useState('');
@@ -98,9 +101,12 @@ export const Vendors: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // In a real app, we would fetch vendors from API
-    // For now, using mock data
-    setVendors(mockVendors);
+    setIsLoadingVendors(true);
+    setVendorsError(null);
+    dataService.fetchVendors?.()
+      .then((data: Vendor[]) => setVendors(data))
+      .catch(() => setVendorsError('Failed to load vendors'))
+      .finally(() => setIsLoadingVendors(false));
   }, []);
 
   // Handler for modal submit (add/edit)
@@ -113,8 +119,13 @@ export const Vendors: React.FC = () => {
       }
       setOpenModal(false);
       setSelectedVendor(null);
-      // Refresh vendors (mock)
-      setVendors([...mockVendors]);
+      // Refresh vendors
+      setIsLoadingVendors(true);
+      setVendorsError(null);
+      dataService.fetchVendors?.()
+        .then((data: Vendor[]) => setVendors(data))
+        .catch(() => setVendorsError('Failed to load vendors'))
+        .finally(() => setIsLoadingVendors(false));
     } catch (err) {
       setError('Failed to save vendor. Please try again.');
     }
@@ -251,7 +262,9 @@ export const Vendors: React.FC = () => {
           </Tooltip>
         </Box>
 
-        {isLoading && <LinearProgress />}
+        {isLoadingVendors ? <LinearProgress /> : null}
+        {vendorsError && <Alert severity="error">{vendorsError}</Alert>}
+        {error && <Alert severity="error">{error}</Alert>}
 
         <TableContainer sx={{ maxHeight: 'calc(100vh - 300px)' }}>
           <Table stickyHeader aria-label="vendors table">
