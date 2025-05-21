@@ -72,4 +72,9 @@
 - Implement date/time formatting
 - Add currency formatting
 - Create translation system
-- Add RTL support 
+- Add RTL support
+
+## 11. GraphQL CRUD
+- [x] Add GraphQL CRUD for Project, Vendor, Transaction, BudgetEntry
+- [x] Update documentation for new GraphQL endpoints and usage
+- [ ] When adding new features or entities, update documentation and examples accordingly. 

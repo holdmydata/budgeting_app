@@ -113,6 +113,8 @@ export interface BudgetEntry {
   allocatedAmount: number;
   remainingAmount: number;
   description: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 // Calculation/Rollup Table

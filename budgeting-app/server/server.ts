@@ -567,12 +567,96 @@ const typeDefs = `#graphql
     updatedAt: String
   }
 
+  type Vendor {
+    id: ID
+    vendorCode: String
+    vendorName: String
+    category: String
+    contactName: String
+    contactEmail: String
+    contactPhone: String
+    performanceScore: Float
+    isActive: Boolean
+    createdAt: String
+    updatedAt: String
+  }
+
   type Query {
     kpis(sessionId: String!): [KPI]
     glAccounts(sessionId: String!, accountType: String, isActive: Boolean): [GLAccount]
     projects(sessionId: String!, status: String, priority: String): [Project]
     transactions(sessionId: String!, projectId: String, glAccount: String): [Transaction]
     budgetEntries(sessionId: String!, projectId: String, fiscalYear: Int): [BudgetEntry]
+    vendors(sessionId: String!, isActive: Boolean, category: String): [Vendor]
+  }
+
+  input ProjectInput {
+    projectCode: String
+    projectName: String
+    description: String
+    startDate: String
+    endDate: String
+    budget: Float
+    spent: Float
+    status: String
+    owner: String
+    priority: String
+    glAccount: String
+  }
+
+  input VendorInput {
+    vendorCode: String
+    vendorName: String
+    category: String
+    contactName: String
+    contactEmail: String
+    contactPhone: String
+    performanceScore: Float
+    isActive: Boolean
+  }
+
+  input TransactionInput {
+    transactionDate: String
+    amount: Float
+    description: String
+    glAccount: String
+    projectId: String
+    transactionType: String
+    vendorId: String
+    status: String
+  }
+
+  input BudgetEntryInput {
+    glAccount: String!
+    projectId: String!
+    fiscalYear: Int!
+    fiscalMonth: Int!
+    amount: Float!
+    notes: String
+  }
+
+  input BudgetEntryUpdateInput {
+    glAccount: String
+    projectId: String
+    fiscalYear: Int
+    fiscalMonth: Int
+    amount: Float
+    notes: String
+  }
+
+  type Mutation {
+    addProject(sessionId: String!, input: ProjectInput!): Project
+    updateProject(sessionId: String!, id: ID!, input: ProjectInput!): Project
+    deleteProject(sessionId: String!, id: ID!): Boolean
+    addVendor(sessionId: String!, input: VendorInput!): Vendor
+    updateVendor(sessionId: String!, id: ID!, input: VendorInput!): Vendor
+    deleteVendor(sessionId: String!, id: ID!): Boolean
+    addTransaction(sessionId: String!, input: TransactionInput!): Transaction
+    updateTransaction(sessionId: String!, id: ID!, input: TransactionInput!): Transaction
+    deleteTransaction(sessionId: String!, id: ID!): Boolean
+    createBudgetEntry(sessionId: String!, input: BudgetEntryInput!): BudgetEntry
+    updateBudgetEntry(sessionId: String!, id: ID!, input: BudgetEntryUpdateInput!): BudgetEntry
+    deleteBudgetEntry(sessionId: String!, id: ID!): Boolean
   }
 `;
 

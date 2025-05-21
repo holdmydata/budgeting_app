@@ -336,4 +336,56 @@ For a visual experience when working with GraphQL:
 2. Implement the mutation resolvers for budget entries
 3. Extend the schema with useful relationships
 4. Add custom measures for financial reporting
-5. Create example queries in documentation 
+5. Create example queries in documentation
+
+## Supported Entities
+
+As of the latest release, the following entities support full CRUD via GraphQL:
+- Projects
+- Vendors
+- Transactions
+- Budget Entries
+
+### Example: Transaction Mutations
+
+```graphql
+mutation {
+  addTransaction(
+    sessionId: "YOUR_SESSION_ID",
+    input: {
+      transactionDate: "2024-06-01"
+      amount: 1000
+      description: "Office Supplies"
+      glAccount: "GL-101"
+      projectId: "PRJ-001"
+      transactionType: "Expense"
+      vendorId: "VEND-001"
+      status: "Approved"
+    }
+  ) {
+    id
+    amount
+    status
+    createdAt
+  }
+}
+```
+
+### Example: Vendor Mutations
+
+```graphql
+mutation {
+  updateVendor(
+    sessionId: "YOUR_SESSION_ID",
+    id: "VEND-001",
+    input: {
+      vendorName: "Acme Corp Updated"
+      isActive: false
+    }
+  ) {
+    id
+    vendorName
+    isActive
+    updatedAt
+  }
+} 

@@ -288,8 +288,6 @@ export class DataService {
         case DataSourceType.MOCK:
           await this.mockDelay();
           let projects = [...mockProjects];
-          
-          // Apply filters if provided
           if (filters) {
             projects = projects.filter(project => 
               Object.entries(filters).every(([key, value]) => 
@@ -298,23 +296,42 @@ export class DataService {
               )
             );
           }
-          
           return projects;
-          
         case DataSourceType.DATABRICKS:
           if (!this.sessionId) {
             await this.connectToDatabricks(this.config as DatabricksConfig);
           }
-          
-          const response = await axios.get(`${this.serverUrl}/api/projects`, {
-            params: {
-              sessionId: this.sessionId,
-              ...filters
+          // Use GraphQL
+          const query = `
+            query Projects($sessionId: String!, $status: String, $priority: String) {
+              projects(sessionId: $sessionId, status: $status, priority: $priority) {
+                id
+                projectCode
+                projectName
+                description
+                startDate
+                endDate
+                budget
+                spent
+                status
+                owner
+                priority
+                glAccount
+                createdAt
+                updatedAt
+              }
             }
+          `;
+          const variables: any = { sessionId: this.sessionId };
+          if (filters?.status) variables.status = filters.status;
+          if (filters?.priority) variables.priority = filters.priority;
+          const res = await fetch(this.graphqlUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ query, variables })
           });
-          
-          return response.data;
-          
+          const json = await res.json();
+          return json.data.projects;
         case DataSourceType.API:
           const apiConfig = this.config as ApiConfig;
           const apiResponse = await axios.get(`${apiConfig.baseUrl}/api/projects`, {
@@ -324,17 +341,157 @@ export class DataService {
               ...(apiConfig.apiKey ? { 'Authorization': `Bearer ${apiConfig.apiKey}` } : {})
             }
           });
-          
           return apiResponse.data;
-          
         default:
           throw new Error(`Unsupported data source type: ${configType}`);
       }
     } catch (error) {
       console.error('Error fetching projects:', error);
       this.usingMockFallback = true;
-      // Fallback to mock data
       return [...mockProjects];
+    }
+  }
+
+  public async addProject(input: Partial<Project>): Promise<Project> {
+    try {
+      const configType = this.config.type;
+      switch (configType) {
+        case DataSourceType.MOCK:
+          await this.mockDelay();
+          const newProject = { ...input, id: Date.now().toString(), createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() } as Project;
+          mockProjects.push(newProject);
+          return newProject;
+        case DataSourceType.DATABRICKS:
+          if (!this.sessionId) {
+            await this.connectToDatabricks(this.config as DatabricksConfig);
+          }
+          const mutation = `
+            mutation AddProject($sessionId: String!, $input: ProjectInput!) {
+              addProject(sessionId: $sessionId, input: $input) {
+                id
+                projectCode
+                projectName
+                description
+                startDate
+                endDate
+                budget
+                spent
+                status
+                owner
+                priority
+                glAccount
+                createdAt
+                updatedAt
+              }
+            }
+          `;
+          const variables = { sessionId: this.sessionId, input };
+          const res = await fetch(this.graphqlUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ query: mutation, variables })
+          });
+          const json = await res.json();
+          return json.data.addProject;
+        case DataSourceType.API:
+          throw new Error('API addProject not implemented');
+        default:
+          throw new Error(`Unsupported data source type: ${configType}`);
+      }
+    } catch (error) {
+      console.error('Error adding project:', error);
+      throw error;
+    }
+  }
+
+  public async updateProject(id: string, input: Partial<Project>): Promise<Project> {
+    try {
+      const configType = this.config.type;
+      switch (configType) {
+        case DataSourceType.MOCK:
+          await this.mockDelay();
+          const idx = mockProjects.findIndex(p => p.id === id);
+          if (idx === -1) throw new Error('Project not found');
+          mockProjects[idx] = { ...mockProjects[idx], ...input, updatedAt: new Date().toISOString() };
+          return mockProjects[idx];
+        case DataSourceType.DATABRICKS:
+          if (!this.sessionId) {
+            await this.connectToDatabricks(this.config as DatabricksConfig);
+          }
+          const mutation = `
+            mutation UpdateProject($sessionId: String!, $id: ID!, $input: ProjectInput!) {
+              updateProject(sessionId: $sessionId, id: $id, input: $input) {
+                id
+                projectCode
+                projectName
+                description
+                startDate
+                endDate
+                budget
+                spent
+                status
+                owner
+                priority
+                glAccount
+                createdAt
+                updatedAt
+              }
+            }
+          `;
+          const variables = { sessionId: this.sessionId, id, input };
+          const res = await fetch(this.graphqlUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ query: mutation, variables })
+          });
+          const json = await res.json();
+          return json.data.updateProject;
+        case DataSourceType.API:
+          throw new Error('API updateProject not implemented');
+        default:
+          throw new Error(`Unsupported data source type: ${configType}`);
+      }
+    } catch (error) {
+      console.error('Error updating project:', error);
+      throw error;
+    }
+  }
+
+  public async deleteProject(id: string): Promise<boolean> {
+    try {
+      const configType = this.config.type;
+      switch (configType) {
+        case DataSourceType.MOCK:
+          await this.mockDelay();
+          const idx = mockProjects.findIndex(p => p.id === id);
+          if (idx === -1) return false;
+          mockProjects.splice(idx, 1);
+          return true;
+        case DataSourceType.DATABRICKS:
+          if (!this.sessionId) {
+            await this.connectToDatabricks(this.config as DatabricksConfig);
+          }
+          const mutation = `
+            mutation DeleteProject($sessionId: String!, $id: ID!) {
+              deleteProject(sessionId: $sessionId, id: $id)
+            }
+          `;
+          const variables = { sessionId: this.sessionId, id };
+          const res = await fetch(this.graphqlUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ query: mutation, variables })
+          });
+          const json = await res.json();
+          return json.data.deleteProject;
+        case DataSourceType.API:
+          throw new Error('API deleteProject not implemented');
+        default:
+          throw new Error(`Unsupported data source type: ${configType}`);
+      }
+    } catch (error) {
+      console.error('Error deleting project:', error);
+      throw error;
     }
   }
 
@@ -640,18 +797,58 @@ export class DataService {
   }
 
   // Fetch Vendors
-  public async fetchVendors(): Promise<any[]> {
+  public async fetchVendors(filters?: Record<string, any>): Promise<any[]> {
     try {
       const configType = this.config.type;
       switch (configType) {
         case DataSourceType.MOCK:
           await this.mockDelay();
-          return [...mockVendors];
+          let vendors = [...mockVendors];
+          if (filters) {
+            vendors = vendors.filter(vendor => 
+              Object.entries(filters).every(([key, value]) => 
+                // @ts-ignore - Dynamic property access
+                vendor[key] === value
+              )
+            );
+          }
+          return vendors;
         case DataSourceType.DATABRICKS:
+          if (!this.sessionId) {
+            await this.connectToDatabricks(this.config as DatabricksConfig);
+          }
+          // Use GraphQL
+          const query = `
+            query Vendors($sessionId: String!, $isActive: Boolean, $category: String) {
+              vendors(sessionId: $sessionId, isActive: $isActive, category: $category) {
+                id
+                vendorCode
+                vendorName
+                category
+                contactName
+                contactEmail
+                contactPhone
+                performanceScore
+                isActive
+                createdAt
+                updatedAt
+              }
+            }
+          `;
+          const variables: any = { sessionId: this.sessionId };
+          if (filters?.isActive !== undefined) variables.isActive = filters.isActive;
+          if (filters?.category) variables.category = filters.category;
+          const res = await fetch(this.graphqlUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ query, variables })
+          });
+          const json = await res.json();
+          return json.data.vendors;
         case DataSourceType.API:
-          // Example endpoint, adjust as needed
           const apiConfig = this.config as ApiConfig;
           const response = await axios.get(`${apiConfig.baseUrl}/api/vendors`, {
+            params: filters,
             headers: {
               ...(apiConfig.headers || {}),
               ...(apiConfig.apiKey ? { 'Authorization': `Bearer ${apiConfig.apiKey}` } : {})
@@ -665,6 +862,155 @@ export class DataService {
       console.error('Error fetching vendors:', error);
       this.usingMockFallback = true;
       return [...mockVendors];
+    }
+  }
+
+  public async addVendor(input: Partial<any>): Promise<any> {
+    try {
+      const configType = this.config.type;
+      switch (configType) {
+        case DataSourceType.MOCK:
+          await this.mockDelay();
+          const newVendor = {
+            id: Date.now().toString(),
+            vendorName: input.vendorName || '',
+            vendorCode: input.vendorCode || '',
+            category: input.category || '',
+            contactName: input.contactName || '',
+            contactEmail: input.contactEmail || '',
+            contactPhone: input.contactPhone || '',
+            performanceScore: input.performanceScore ?? 0,
+            isActive: input.isActive ?? true,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          };
+          mockVendors.push(newVendor);
+          return newVendor;
+        case DataSourceType.DATABRICKS:
+          if (!this.sessionId) {
+            await this.connectToDatabricks(this.config as DatabricksConfig);
+          }
+          const mutation = `
+            mutation AddVendor($sessionId: String!, $input: VendorInput!) {
+              addVendor(sessionId: $sessionId, input: $input) {
+                id
+                vendorCode
+                vendorName
+                category
+                contactName
+                contactEmail
+                contactPhone
+                performanceScore
+                isActive
+                createdAt
+                updatedAt
+              }
+            }
+          `;
+          const variables = { sessionId: this.sessionId, input };
+          const res = await fetch(this.graphqlUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ query: mutation, variables })
+          });
+          const json = await res.json();
+          return json.data.addVendor;
+        case DataSourceType.API:
+          throw new Error('API addVendor not implemented');
+        default:
+          throw new Error(`Unsupported data source type: ${configType}`);
+      }
+    } catch (error) {
+      console.error('Error adding vendor:', error);
+      throw error;
+    }
+  }
+
+  public async updateVendor(id: string, input: Partial<any>): Promise<any> {
+    try {
+      const configType = this.config.type;
+      switch (configType) {
+        case DataSourceType.MOCK:
+          await this.mockDelay();
+          const idx = mockVendors.findIndex(v => v.id === id);
+          if (idx === -1) throw new Error('Vendor not found');
+          mockVendors[idx] = { ...mockVendors[idx], ...input, updatedAt: new Date().toISOString() };
+          return mockVendors[idx];
+        case DataSourceType.DATABRICKS:
+          if (!this.sessionId) {
+            await this.connectToDatabricks(this.config as DatabricksConfig);
+          }
+          const mutation = `
+            mutation UpdateVendor($sessionId: String!, $id: ID!, $input: VendorInput!) {
+              updateVendor(sessionId: $sessionId, id: $id, input: $input) {
+                id
+                vendorCode
+                vendorName
+                category
+                contactName
+                contactEmail
+                contactPhone
+                performanceScore
+                isActive
+                createdAt
+                updatedAt
+              }
+            }
+          `;
+          const variables = { sessionId: this.sessionId, id, input };
+          const res = await fetch(this.graphqlUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ query: mutation, variables })
+          });
+          const json = await res.json();
+          return json.data.updateVendor;
+        case DataSourceType.API:
+          throw new Error('API updateVendor not implemented');
+        default:
+          throw new Error(`Unsupported data source type: ${configType}`);
+      }
+    } catch (error) {
+      console.error('Error updating vendor:', error);
+      throw error;
+    }
+  }
+
+  public async deleteVendor(id: string): Promise<boolean> {
+    try {
+      const configType = this.config.type;
+      switch (configType) {
+        case DataSourceType.MOCK:
+          await this.mockDelay();
+          const idx = mockVendors.findIndex(v => v.id === id);
+          if (idx === -1) return false;
+          mockVendors.splice(idx, 1);
+          return true;
+        case DataSourceType.DATABRICKS:
+          if (!this.sessionId) {
+            await this.connectToDatabricks(this.config as DatabricksConfig);
+          }
+          const mutation = `
+            mutation DeleteVendor($sessionId: String!, $id: ID!) {
+              deleteVendor(sessionId: $sessionId, id: $id)
+            }
+          `;
+          const variables = { sessionId: this.sessionId, id };
+          const res = await fetch(this.graphqlUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ query: mutation, variables })
+          });
+          const json = await res.json();
+          return json.data.deleteVendor;
+        case DataSourceType.API:
+          throw new Error('API deleteVendor not implemented');
+        default:
+          throw new Error(`Unsupported data source type: ${configType}`);
+      }
+    } catch (error) {
+      console.error('Error deleting vendor:', error);
+      throw error;
     }
   }
 
@@ -764,6 +1110,276 @@ export class DataService {
 
   public isUsingMockFallback(): boolean {
     return this.usingMockFallback;
+  }
+
+  public async addTransaction(input: Partial<FinancialTransaction>): Promise<FinancialTransaction> {
+    try {
+      const configType = this.config.type;
+      switch (configType) {
+        case DataSourceType.MOCK:
+          await this.mockDelay();
+          const newTransaction = { ...input, id: Date.now().toString(), createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() } as FinancialTransaction;
+          mockTransactions.push(newTransaction);
+          return newTransaction;
+        case DataSourceType.DATABRICKS:
+          if (!this.sessionId) {
+            await this.connectToDatabricks(this.config as DatabricksConfig);
+          }
+          const mutation = `
+            mutation AddTransaction($sessionId: String!, $input: TransactionInput!) {
+              addTransaction(sessionId: $sessionId, input: $input) {
+                id
+                transactionDate
+                amount
+                description
+                glAccount
+                projectId
+                transactionType
+                vendorId
+                status
+                createdAt
+                updatedAt
+              }
+            }
+          `;
+          const variables = { sessionId: this.sessionId, input };
+          const res = await fetch(this.graphqlUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ query: mutation, variables })
+          });
+          const json = await res.json();
+          return json.data.addTransaction;
+        case DataSourceType.API:
+          throw new Error('API addTransaction not implemented');
+        default:
+          throw new Error(`Unsupported data source type: ${configType}`);
+      }
+    } catch (error) {
+      console.error('Error adding transaction:', error);
+      throw error;
+    }
+  }
+
+  public async updateTransaction(id: string, input: Partial<FinancialTransaction>): Promise<FinancialTransaction> {
+    try {
+      const configType = this.config.type;
+      switch (configType) {
+        case DataSourceType.MOCK:
+          await this.mockDelay();
+          const idx = mockTransactions.findIndex(t => t.id === id);
+          if (idx === -1) throw new Error('Transaction not found');
+          mockTransactions[idx] = { ...mockTransactions[idx], ...input, updatedAt: new Date().toISOString() };
+          return mockTransactions[idx];
+        case DataSourceType.DATABRICKS:
+          if (!this.sessionId) {
+            await this.connectToDatabricks(this.config as DatabricksConfig);
+          }
+          const mutation = `
+            mutation UpdateTransaction($sessionId: String!, $id: ID!, $input: TransactionInput!) {
+              updateTransaction(sessionId: $sessionId, id: $id, input: $input) {
+                id
+                transactionDate
+                amount
+                description
+                glAccount
+                projectId
+                transactionType
+                vendorId
+                status
+                createdAt
+                updatedAt
+              }
+            }
+          `;
+          const variables = { sessionId: this.sessionId, id, input };
+          const res = await fetch(this.graphqlUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ query: mutation, variables })
+          });
+          const json = await res.json();
+          return json.data.updateTransaction;
+        case DataSourceType.API:
+          throw new Error('API updateTransaction not implemented');
+        default:
+          throw new Error(`Unsupported data source type: ${configType}`);
+      }
+    } catch (error) {
+      console.error('Error updating transaction:', error);
+      throw error;
+    }
+  }
+
+  public async deleteTransaction(id: string): Promise<boolean> {
+    try {
+      const configType = this.config.type;
+      switch (configType) {
+        case DataSourceType.MOCK:
+          await this.mockDelay();
+          const idx = mockTransactions.findIndex(t => t.id === id);
+          if (idx === -1) return false;
+          mockTransactions.splice(idx, 1);
+          return true;
+        case DataSourceType.DATABRICKS:
+          if (!this.sessionId) {
+            await this.connectToDatabricks(this.config as DatabricksConfig);
+          }
+          const mutation = `
+            mutation DeleteTransaction($sessionId: String!, $id: ID!) {
+              deleteTransaction(sessionId: $sessionId, id: $id)
+            }
+          `;
+          const variables = { sessionId: this.sessionId, id };
+          const res = await fetch(this.graphqlUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ query: mutation, variables })
+          });
+          const json = await res.json();
+          return json.data.deleteTransaction;
+        case DataSourceType.API:
+          throw new Error('API deleteTransaction not implemented');
+        default:
+          throw new Error(`Unsupported data source type: ${configType}`);
+      }
+    } catch (error) {
+      console.error('Error deleting transaction:', error);
+      throw error;
+    }
+  }
+
+  public async addBudgetEntry(input: Partial<BudgetEntry>): Promise<BudgetEntry> {
+    try {
+      const configType = this.config.type;
+      switch (configType) {
+        case DataSourceType.MOCK:
+          await this.mockDelay();
+          const newEntry = { ...input, id: Date.now().toString(), createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() } as BudgetEntry;
+          mockBudgetEntries.push(newEntry);
+          return newEntry;
+        case DataSourceType.DATABRICKS:
+          if (!this.sessionId) {
+            await this.connectToDatabricks(this.config as DatabricksConfig);
+          }
+          const mutation = `
+            mutation CreateBudgetEntry($sessionId: String!, $input: BudgetEntryInput!) {
+              createBudgetEntry(sessionId: $sessionId, input: $input) {
+                id
+                glAccount
+                projectId
+                fiscalYear
+                fiscalMonth
+                amount
+                notes
+                createdAt
+                updatedAt
+              }
+            }
+          `;
+          const variables = { sessionId: this.sessionId, input };
+          const res = await fetch(this.graphqlUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ query: mutation, variables })
+          });
+          const json = await res.json();
+          return json.data.createBudgetEntry;
+        case DataSourceType.API:
+          throw new Error('API addBudgetEntry not implemented');
+        default:
+          throw new Error(`Unsupported data source type: ${configType}`);
+      }
+    } catch (error) {
+      console.error('Error adding budget entry:', error);
+      throw error;
+    }
+  }
+
+  public async updateBudgetEntry(id: string, input: Partial<BudgetEntry>): Promise<BudgetEntry> {
+    try {
+      const configType = this.config.type;
+      switch (configType) {
+        case DataSourceType.MOCK:
+          await this.mockDelay();
+          const idx = mockBudgetEntries.findIndex(e => e.id === id);
+          if (idx === -1) throw new Error('Budget entry not found');
+          mockBudgetEntries[idx] = { ...mockBudgetEntries[idx], ...input, updatedAt: new Date().toISOString() };
+          return mockBudgetEntries[idx];
+        case DataSourceType.DATABRICKS:
+          if (!this.sessionId) {
+            await this.connectToDatabricks(this.config as DatabricksConfig);
+          }
+          const mutation = `
+            mutation UpdateBudgetEntry($sessionId: String!, $id: ID!, $input: BudgetEntryUpdateInput!) {
+              updateBudgetEntry(sessionId: $sessionId, id: $id, input: $input) {
+                id
+                glAccount
+                projectId
+                fiscalYear
+                fiscalMonth
+                amount
+                notes
+                createdAt
+                updatedAt
+              }
+            }
+          `;
+          const variables = { sessionId: this.sessionId, id, input };
+          const res = await fetch(this.graphqlUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ query: mutation, variables })
+          });
+          const json = await res.json();
+          return json.data.updateBudgetEntry;
+        case DataSourceType.API:
+          throw new Error('API updateBudgetEntry not implemented');
+        default:
+          throw new Error(`Unsupported data source type: ${configType}`);
+      }
+    } catch (error) {
+      console.error('Error updating budget entry:', error);
+      throw error;
+    }
+  }
+
+  public async deleteBudgetEntry(id: string): Promise<boolean> {
+    try {
+      const configType = this.config.type;
+      switch (configType) {
+        case DataSourceType.MOCK:
+          await this.mockDelay();
+          const idx = mockBudgetEntries.findIndex(e => e.id === id);
+          if (idx === -1) return false;
+          mockBudgetEntries.splice(idx, 1);
+          return true;
+        case DataSourceType.DATABRICKS:
+          if (!this.sessionId) {
+            await this.connectToDatabricks(this.config as DatabricksConfig);
+          }
+          const mutation = `
+            mutation DeleteBudgetEntry($sessionId: String!, $id: ID!) {
+              deleteBudgetEntry(sessionId: $sessionId, id: $id)
+            }
+          `;
+          const variables = { sessionId: this.sessionId, id };
+          const res = await fetch(this.graphqlUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ query: mutation, variables })
+          });
+          const json = await res.json();
+          return json.data.deleteBudgetEntry;
+        case DataSourceType.API:
+          throw new Error('API deleteBudgetEntry not implemented');
+        default:
+          throw new Error(`Unsupported data source type: ${configType}`);
+      }
+    } catch (error) {
+      console.error('Error deleting budget entry:', error);
+      throw error;
+    }
   }
 }
 

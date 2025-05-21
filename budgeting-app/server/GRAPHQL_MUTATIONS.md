@@ -607,3 +607,40 @@ GraphQL makes updating budget lines simpler by:
 4. **Immediate feedback** - Return exact updated fields to confirm changes
 5. **Batch operations** - Can update multiple entries in a single mutation
 6. **Transaction support** - All-or-nothing updates for data integrity 
+
+## Supported Mutations
+
+The following entities support create, update, and delete mutations:
+- Project
+- Vendor
+- Transaction
+- BudgetEntry
+
+### Example: Project Mutations
+
+```graphql
+mutation {
+  addProject(
+    sessionId: "YOUR_SESSION_ID",
+    input: {
+      projectName: "New Project"
+      projectCode: "PRJ-NEW"
+      status: "Planned"
+      budget: 50000
+    }
+  ) {
+    id
+    projectName
+    status
+    createdAt
+  }
+}
+```
+
+### Example: Transaction Mutations
+
+```graphql
+mutation {
+  deleteTransaction(sessionId: "YOUR_SESSION_ID", id: "TXN-123") 
+}
+``` 

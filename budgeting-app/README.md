@@ -13,6 +13,7 @@ A modern budgeting application with Databricks integration using a server-middle
 - Modern React frontend with Material UI
 - Server-middleware architecture for secure Databricks connections
 - REST API endpoints for data access
+- - GraphQL API for all major entities (Projects, Vendors, Transactions, Budget Entries) in Databricks mode
 - Mock data support for development and demos
 - Electron compatibility for desktop application
 
@@ -64,6 +65,52 @@ npm run dev
 ```bash
 npm run server
 ```
+
+## GraphQL API
+
+When using Databricks as your data source, the app uses a modern GraphQL API for all data operations.  
+The GraphQL endpoint is available at:
+
+```
+http://localhost:5000/graphql
+```
+
+You can use tools like [Apollo Studio](https://studio.apollographql.com/) or [GraphiQL](https://github.com/graphql/graphiql) to explore the schema and run queries/mutations.
+
+#### Example Query
+
+```graphql
+query {
+  projects(sessionId: "YOUR_SESSION_ID") {
+    id
+    projectName
+    budget
+    status
+  }
+}
+```
+
+#### Example Mutation
+
+```graphql
+mutation {
+  addVendor(
+    sessionId: "YOUR_SESSION_ID",
+    input: {
+      vendorName: "Acme Corp"
+      vendorCode: "ACME"
+      category: "Supplies"
+      isActive: true
+    }
+  ) {
+    id
+    vendorName
+    createdAt
+  }
+}
+```
+
+> **Note:** REST endpoints are still available for legacy/API mode, but Databricks mode is GraphQL-first.
 
 ## Databricks Configuration
 
