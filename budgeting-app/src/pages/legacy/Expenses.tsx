@@ -31,10 +31,10 @@ import SearchIcon from '@mui/icons-material/Search';
 import FilterListIcon from '@mui/icons-material/FilterList';
 import AddIcon from '@mui/icons-material/Add';
 import DownloadIcon from '@mui/icons-material/Download';
-import { useData } from '../context/DataContext';
-import { FinancialTransaction } from '../types/data';
-import { dataService } from '../services/dataService';
-import ExpenseFormModal from '../modals/ExpenseFormModal';
+import { useData } from '../../context/DataContext';
+import { FinancialTransaction } from '../../types/data';
+import { dataService } from '../../services/dataService';
+import ExpenseFormModal from '../../modals/ExpenseFormModal';
 
 // Type for sorting order
 type Order = 'asc' | 'desc';

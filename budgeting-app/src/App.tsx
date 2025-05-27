@@ -5,11 +5,15 @@ import { DataProvider } from './context/DataContext';
 import theme from './theme/theme';
 import { Layout } from './components/layout/Layout';
 import { Dashboard } from './pages/Dashboard';
-import Projects from './pages/Projects';
 import { Help } from './pages/Help';
-import { GLAccounts } from './pages/GLAccounts';
-import Expenses from './pages/Expenses';
-import Vendors from './pages/Vendors';
+import { BudgetVsActual } from './pages/planning/BudgetVsActual';
+import { StrategicPlanning } from './pages/planning/StrategicPlanning';
+import { VendorOptimization } from './pages/planning/VendorOptimization';
+import { ScenarioPlanning } from './pages/planning/ScenarioPlanning';
+import Projects from './pages/legacy/Projects';
+import { GLAccounts } from './pages/legacy/GLAccounts';
+import Expenses from './pages/legacy/Expenses';
+import Vendors from './pages/legacy/Vendors';
 import DataSourceConfig from './components/DataSourceConfig';
 import { Suspense, useEffect } from 'react';
 
@@ -116,6 +120,10 @@ function App() {
                 <Route path="reports" element={<Layout><Reports /></Layout>} />
                 <Route path="settings" element={<Layout><Settings /></Layout>} />
                 <Route path="profile" element={<Layout><Profile /></Layout>} />
+                <Route path="budget-vs-actual" element={<Layout><BudgetVsActual /></Layout>} />
+                <Route path="strategic-planning" element={<Layout><StrategicPlanning /></Layout>} />
+                <Route path="vendor-optimization" element={<Layout><VendorOptimization /></Layout>} />
+                <Route path="scenario-planning" element={<Layout><ScenarioPlanning /></Layout>} />
                 <Route path="help" element={<Layout><Help /></Layout>} />
                 <Route path="gl-accounts" element={<Layout><GLAccounts /></Layout>} />
                 <Route path="expenses" element={<Layout><Expenses /></Layout>} />

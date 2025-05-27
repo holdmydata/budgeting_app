@@ -38,9 +38,9 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import PauseCircleIcon from '@mui/icons-material/PauseCircle';
 import PlayCircleIcon from '@mui/icons-material/PlayCircle';
 import EditIcon from '@mui/icons-material/Edit';
-import { useData } from '../context/DataContext';
-import { Project } from '../types/data';
-import ProjectFormModal from '../modals/ProjectFormModal';
+import { useData } from '../../context/DataContext';
+import { Project } from '../../types/data';
+import ProjectFormModal from '../../modals/ProjectFormModal';
 
 // Format currency helper
 const formatCurrency = (value: number): string => {

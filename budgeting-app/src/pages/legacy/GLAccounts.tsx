@@ -28,9 +28,9 @@ import {
 import SearchIcon from '@mui/icons-material/Search';
 import FilterListIcon from '@mui/icons-material/FilterList';
 import AddIcon from '@mui/icons-material/Add';
-import { GLAccount } from '../types/data';
-import { useData } from '../context/DataContext';
-import GLAccountDetailsModal from '../modals/GLAccountDetailsModal';
+import { GLAccount } from '../../types/data';
+import { useData } from '../../context/DataContext';
+import GLAccountDetailsModal from '../../modals/GLAccountDetailsModal';
 
 // Column definition for the table
 interface Column {

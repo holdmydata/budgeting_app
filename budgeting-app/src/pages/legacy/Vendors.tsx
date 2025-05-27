@@ -27,10 +27,10 @@ import {
 import SearchIcon from '@mui/icons-material/Search';
 import FilterListIcon from '@mui/icons-material/FilterList';
 import AddIcon from '@mui/icons-material/Add';
-import { useData } from '../context/DataContext';
-import { Vendor } from '../types/data';
-import { dataService } from '../services/dataService';
-import VendorFormModal from '../modals/VendorFormModal';
+import { useData } from '../../context/DataContext';
+import { Vendor } from '../../types/data';
+import { dataService } from '../../services/dataService';
+import VendorFormModal from '../../modals/VendorFormModal';
 
 
 

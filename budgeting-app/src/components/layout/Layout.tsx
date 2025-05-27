@@ -220,10 +220,14 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
 
   const navigationItems: NavigationItem[] = [
     { text: 'Dashboard', path: '/', icon: <DashboardIcon /> },
-    { text: 'GL Accounts', path: '/gl-accounts', icon: <AccountBalanceIcon /> },
-    { text: 'Expenses', path: '/expenses', icon: <ReceiptIcon /> },
-    { text: 'Projects', path: '/projects', icon: <AssignmentIcon /> },
-    { text: 'Vendors', path: '/vendors', icon: <BusinessIcon /> },
+    { text: 'Budget vs Actual', path: '/budget-vs-actual', icon: <AccountBalanceIcon /> },
+    { text: 'Scenario Planning', path: '/scenario-planning', icon: <AssignmentIcon /> },
+    { text: 'Strategic Planning', path: '/strategic-planning', icon: <AssignmentIcon /> },
+    { text: 'Vendor Optimization', path: '/vendor-optimization', icon: <BusinessIcon /> },
+    // { text: 'GL Accounts', path: '/gl-accounts', icon: <AccountBalanceIcon /> },
+    // { text: 'Expenses', path: '/expenses', icon: <ReceiptIcon /> },
+    // { text: 'Projects', path: '/projects', icon: <AssignmentIcon /> },
+    // { text: 'Vendors', path: '/vendors', icon: <BusinessIcon /> },
     { text: 'Data Source', path: '/data-source', icon: <StorageIcon /> },
     { text: 'Help & Resources', path: '/help', icon: <HelpOutlineIcon /> },
   ];
