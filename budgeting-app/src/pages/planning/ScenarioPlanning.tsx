@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -14,12 +14,13 @@ import {
   Tooltip,
   Divider,
   Switch,
-  FormControlLabel
+  FormControlLabel,
+  CircularProgress
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
-import { mockBudgetEntries, mockGLAccounts } from '../../services/mockData';
+import { dataService } from '../../services/dataService';
 
 // Currency formatter
 const currency = (value: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(value);
@@ -55,12 +56,29 @@ const ScenarioPlanning: React.FC = () => {
   const [selectedMonth, setSelectedMonth] = useState(0); // For summary cards in monthly mode
 
   // Data
-  const glAccounts = mockGLAccounts;
-  const baseBudgets = mockBudgetEntries;
+  const [glAccounts, setGLAccounts] = useState<any[]>([]);
+  const [baseBudgets, setBaseBudgets] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setIsLoading(true);
+    setError(null);
+    Promise.all([
+      dataService.fetchGLAccounts(),
+      dataService.fetchBudgetEntries()
+    ])
+      .then(([gls, budgets]) => {
+        setGLAccounts(gls);
+        setBaseBudgets(budgets);
+      })
+      .catch(() => setError('Failed to load data'))
+      .finally(() => setIsLoading(false));
+  }, []);
 
   // Helper: get scenario-adjusted budget for a GL (annual or monthly)
   const getBudgetForGL = (scenario: Scenario, glId: string, monthIdx?: number): number | number[] => {
-    const base = baseBudgets.find(b => b.glAccount === glAccounts.find(g => g.id === glId)?.accountNumber);
+    const base = baseBudgets.find(b => b.glAccount === glAccounts.find((g: any) => g.id === glId || g.accountNumber === glId)?.accountNumber);
     if (monthlyMode) {
       const arr = scenario.adjustments[glId] ?? (base ? Array(12).fill(Math.round((base.amount ?? 0) / 12)) : emptyMonths());
       return monthIdx !== undefined ? arr[monthIdx] : arr;
@@ -74,7 +92,7 @@ const ScenarioPlanning: React.FC = () => {
 
   // Helper: get actuals for a GL (annual or monthly)
   const getActualForGL = (glId: string, monthIdx?: number): number | number[] => {
-    const base = baseBudgets.find(b => b.glAccount === glAccounts.find(g => g.id === glId)?.accountNumber);
+    const base = baseBudgets.find(b => b.glAccount === glAccounts.find((g: any) => g.id === glId || g.accountNumber === glId)?.accountNumber);
     if (monthlyMode) {
       const arr = base ? Array(12).fill(Math.round((base.allocatedAmount ?? 0) / 12)) : emptyMonths();
       return monthIdx !== undefined ? arr[monthIdx] : arr;
@@ -167,6 +185,14 @@ const ScenarioPlanning: React.FC = () => {
       return sum + (typeof val === 'number' ? val : 0);
     }, 0);
     scenarioVariances = scenarioTotals.map(total => total - totalActuals);
+  }
+
+  // Loading/Error UI
+  if (isLoading) {
+    return <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 200 }}><CircularProgress /></Box>;
+  }
+  if (error) {
+    return <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 200 }}><Typography color="error">{error}</Typography></Box>;
   }
 
   // --- UI ---

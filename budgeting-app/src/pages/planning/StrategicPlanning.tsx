@@ -1,19 +1,42 @@
-import React from 'react';
-import { Box, Typography, Paper, Grid, Card, CardContent, Divider, Table, TableHead, TableRow, TableCell, TableBody, Slider } from '@mui/material';
+import React, { useEffect, useState } from 'react';
+import { Box, Typography, Paper, Grid, Card, CardContent, Divider, Table, TableHead, TableRow, TableCell, TableBody, Slider, CircularProgress } from '@mui/material';
+import { dataService } from '../../services/dataService';
 
-// Static mock data for projects and years
-const years = [2024, 2025, 2026];
-const projects = [
-  { name: 'ERP Implementation', roi: 1.5, allocation: [200000, 150000, 100000] },
-  { name: 'Cloud Migration', roi: 2.1, allocation: [120000, 180000, 160000] },
-  { name: 'Security Upgrade', roi: 1.8, allocation: [90000, 110000, 130000] },
-];
 const currency = (v: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(v);
 
 const StrategicPlanning: React.FC = () => {
+  const [projects, setProjects] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [years, setYears] = useState<number[]>([]);
+
+  useEffect(() => {
+    setIsLoading(true);
+    setError(null);
+    dataService.fetchProjects()
+      .then((data) => {
+        setProjects(data);
+        // Compute years from project allocations if available, else use 2023-2025 as fallback
+        if (data.length > 0 && data[0].allocation) {
+          setYears(data[0].allocation.map((_: any, idx: number) => 2023 + idx));
+        } else {
+          setYears([2023, 2024, 2025]);
+        }
+      })
+      .catch(() => setError('Failed to load project data'))
+      .finally(() => setIsLoading(false));
+  }, []);
+
   // Example: total allocation and best ROI
-  const totalAlloc = years.map((_, i) => projects.reduce((sum, p) => sum + p.allocation[i], 0));
-  const bestROI = projects.reduce((a, b) => (a.roi > b.roi ? a : b));
+  const totalAlloc = years.map((_, i) => projects.reduce((sum, p) => sum + (p.allocation ? p.allocation[i] : 0), 0));
+  const bestROI = projects.reduce((a, b) => (a.roi > b.roi ? a : b), projects[0] || { name: '', roi: 0 });
+
+  if (isLoading) {
+    return <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 200 }}><CircularProgress /></Box>;
+  }
+  if (error) {
+    return <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 200 }}><Typography color="error">{error}</Typography></Box>;
+  }
 
   return (
     <Box sx={{ width: '100%', maxWidth: 1400, mx: 'auto', p: { xs: 1, sm: 2 }, pb: 4 }}>
@@ -76,8 +99,8 @@ const StrategicPlanning: React.FC = () => {
               {projects.map(p => (
                 <TableRow key={p.name}>
                   <TableCell sx={{ fontWeight: 600 }}>{p.name}</TableCell>
-                  {p.allocation.map((alloc, i) => (
-                    <TableCell key={i} align="right">{currency(alloc)}</TableCell>
+                  {years.map((_, i) => (
+                    <TableCell key={i} align="right">{currency(p.allocation ? p.allocation[i] : 0)}</TableCell>
                   ))}
                   <TableCell align="right">{p.roi}x</TableCell>
                 </TableRow>
@@ -96,4 +119,4 @@ const StrategicPlanning: React.FC = () => {
   );
 };
 
-export { StrategicPlanning };
+export default StrategicPlanning;
