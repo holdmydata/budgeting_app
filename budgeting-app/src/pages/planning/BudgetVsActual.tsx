@@ -135,4 +135,4 @@ const BudgetVsActual: React.FC = () => {
   );
 };
 
-export default BudgetVsActual;
+export { BudgetVsActual };

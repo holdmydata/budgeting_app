@@ -119,4 +119,4 @@ const StrategicPlanning: React.FC = () => {
   );
 };
 
-export default StrategicPlanning;
+export { StrategicPlanning };

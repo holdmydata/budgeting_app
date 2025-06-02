@@ -99,4 +99,4 @@ const VendorOptimization: React.FC = () => {
   );
 };
 
-export default VendorOptimization;
+export { VendorOptimization };

@@ -38,6 +38,7 @@ const drawerWidth = 280;
 
 interface LayoutProps {
   children: ReactNode;
+  sidebar?: React.ReactNode;
 }
 
 interface NavigationItem {
@@ -91,7 +92,7 @@ const MainContent = styled(Box)(({ theme }) => ({
   marginRight: window.electron ? theme.spacing(.5) : 0
 }));
 
-export const Layout: React.FC<LayoutProps> = ({ children }) => {
+export const Layout: React.FC<LayoutProps> = ({ children, sidebar }) => {
   const { isAuthenticated, isInitializing, user, logout } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [showSplash, setShowSplash] = useState(false);
@@ -242,7 +243,191 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   // For demo purposes - in a real app, this would come from user data
   const userRole = 'CIO'; // Or 'Finance Manager' or other roles
 
-  const drawer = (
+  const drawer = sidebar ? (
+    <Box
+      sx={{
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+        background: '#217346',
+        color: '#ffffff',
+        position: 'relative',
+        overflow: 'hidden',
+        '&::before': {
+          content: '""',
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: `radial-gradient(circle at 15% 85%, ${alpha('#2E8555', 0.25)} 0%, transparent 50%),\n                       radial-gradient(circle at 85% 15%, ${alpha('#1A5D38', 0.15)} 0%, transparent 55%)`,
+          zIndex: 0,
+        }
+      }}
+    >
+      <Box
+        sx={{
+          p: 3,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          position: 'relative',
+          zIndex: 1,
+          mb: 2,
+        }}
+      >
+        <Typography
+          variant="h5"
+          noWrap
+          component="div"
+          sx={{
+            fontWeight: 800,
+            color: '#ffffff',
+            textShadow: '0 2px 4px rgba(0, 0, 0, 0.2)',
+            letterSpacing: '0.2px',
+            display: 'flex',
+            alignItems: 'center',
+          }}
+        >
+          <Box 
+            component="span"
+            sx={{ 
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: 32,
+              height: 32,
+              borderRadius: '8px',
+              background: '#ffffff',
+              color: '#217346',
+              fontWeight: 800,
+              fontSize: '16px',
+              mr: 0,
+              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)',
+              marginLeft: 0,
+            }}
+          >
+            H
+          </Box>
+          <Box sx={{ 
+            px: 1,
+            py: 0.5,
+            borderRadius: '4px',
+            transition: 'all 0.2s ease',
+            '&:hover': {
+              backgroundColor: alpha('#ffffff', 0.1)
+            }
+          }}>
+            Hold My Budget
+          </Box>
+        </Typography>
+      </Box>
+      
+      <Box 
+        sx={{ 
+          mx: 2.5,
+          mb: 2,
+          position: 'relative',
+          zIndex: 1
+        }}
+      >
+        <Paper
+          elevation={0}
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            p: '10px 14px',
+            borderRadius: '16px',
+            backgroundColor: alpha('#ffffff', 0.06),
+            backdropFilter: 'blur(8px)',
+            border: `1px solid ${alpha('#ffffff', 0.1)}`,
+            transition: 'all 0.2s ease',
+            '&:hover': {
+              backgroundColor: alpha('#ffffff', 0.1),
+            },
+          }}
+        >
+          <Avatar 
+            alt={user?.name || 'User'} 
+            sx={{ 
+              bgcolor: '#D97D45',
+              width: 42,
+              height: 42,
+              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
+              color: '#ffffff',
+            }}
+          >
+            {user?.name ? user.name.charAt(0).toUpperCase() : 'D'}
+          </Avatar>
+          
+          <Box sx={{ ml: 1.5, mr: 0.5, flexGrow: 1 }}>
+            <Typography 
+              variant="body2" 
+              sx={{ 
+                fontWeight: 700,
+                color: '#ffffff',
+                fontSize: '0.95rem',
+                lineHeight: 1.2,
+                letterSpacing: '0.2px',
+              }}
+            >
+              Development User
+            </Typography>
+            <Typography 
+              variant="caption" 
+              sx={{ 
+                color: alpha('#ffffff', 0.7), 
+                fontSize: '0.75rem',
+                lineHeight: 1.2,
+                letterSpacing: '0.2px',
+                display: 'block',
+                textAlign: 'center',
+                width: '100%',
+                paddingTop: '2px',
+              }}
+            >
+              CIO
+            </Typography>
+          </Box>
+          
+          <IconButton 
+            size="small" 
+            sx={{ 
+              color: alpha('#ffffff', 0.7),
+              '&:hover': { 
+                backgroundColor: alpha('#ffffff', 0.1),
+                color: '#ffffff'
+              }
+            }}
+            onClick={handleLogout}
+          >
+            <ExitToAppIcon fontSize="small" />
+          </IconButton>
+        </Paper>
+      </Box>
+      
+      <Divider sx={{ 
+        my: 0.5,
+        mx: 2.5, 
+        opacity: 0.1,
+        position: 'relative',
+        zIndex: 1
+      }} />
+      
+      <Box sx={{ px: 2, py: 1, flexGrow: 1, position: 'relative', zIndex: 1 }}>
+        {sidebar}
+      </Box>
+      
+      <Divider sx={{ 
+        mt: 'auto', 
+        mb: 2, 
+        mx: 2.5, 
+        opacity: 0.1,
+        position: 'relative',
+        zIndex: 1 
+      }} />
+    </Box>
+  ) : (
     <Box
       sx={{
         height: '100%',

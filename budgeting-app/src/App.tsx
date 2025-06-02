@@ -16,6 +16,10 @@ import Expenses from './pages/legacy/Expenses';
 import Vendors from './pages/legacy/Vendors';
 import DataSourceConfig from './components/DataSourceConfig';
 import { Suspense, useEffect } from 'react';
+import { ChooseMenu } from './pages/ChooseMenu';
+import { LegacySidebar } from './components/sidebars/LegacySidebar';
+import { PlanningSidebar } from './components/sidebars/PlanningSidebar';
+import { SquareSidebar } from './components/sidebars/SquareSidebar';
 
 // Simple placeholder components for settings and profile pages
 const Settings = () => (
@@ -95,6 +99,23 @@ const NotFound = () => (
   </Box>
 );
 
+// Placeholder layouts for demonstration
+const LegacyLayout = ({ children }: { children: React.ReactNode }) => (
+  <Layout>{children}</Layout>
+);
+const PlanningLayout = ({ children }: { children: React.ReactNode }) => (
+  <Layout>{children}</Layout>
+);
+const SquareLayout = ({ children }: { children: React.ReactNode }) => (
+  <Layout>{children}</Layout>
+);
+const SquarePlaceholder = () => (
+  <Box sx={{ p: 3, textAlign: 'center' }}>
+    <Typography variant="h4" sx={{ mb: 2 }}>Square (Coming Soon)</Typography>
+    <Typography>This section will feature interactive GitHub-style squares.</Typography>
+  </Box>
+);
+
 function App() {
   // Log when the app renders for debugging
   useEffect(() => {
@@ -109,28 +130,38 @@ function App() {
           <DataProvider>
             <AuthProvider>
               <Routes>
-                {/* Login route */}
+                {/* Landing choose menu */}
+                <Route path="/" element={<Layout><ChooseMenu /></Layout>} />
                 <Route path="login" element={<Login />} />
-                
-                {/* Main layout with child routes */}
-                <Route path="/" element={<Layout><Dashboard /></Layout>} />
-                <Route path="dashboard" element={<Navigate to="/" replace />} />
+                <Route path="dashboard" element={<Layout><Dashboard /></Layout>} />
+                <Route path="help" element={<Layout><Help /></Layout>} />
                 <Route path="budgets" element={<Layout><Budgets /></Layout>} />
-                <Route path="projects" element={<Layout><Projects /></Layout>} />
                 <Route path="reports" element={<Layout><Reports /></Layout>} />
                 <Route path="settings" element={<Layout><Settings /></Layout>} />
                 <Route path="profile" element={<Layout><Profile /></Layout>} />
-                <Route path="budget-vs-actual" element={<Layout><BudgetVsActual /></Layout>} />
-                <Route path="strategic-planning" element={<Layout><StrategicPlanning /></Layout>} />
-                <Route path="vendor-optimization" element={<Layout><VendorOptimization /></Layout>} />
-                <Route path="scenario-planning" element={<Layout><ScenarioPlanning /></Layout>} />
-                <Route path="help" element={<Layout><Help /></Layout>} />
-                <Route path="gl-accounts" element={<Layout><GLAccounts /></Layout>} />
-                <Route path="expenses" element={<Layout><Expenses /></Layout>} />
-                <Route path="vendors" element={<Layout><Vendors /></Layout>} />
                 <Route path="data-source" element={<Layout><DataSourceConfig /></Layout>} />
-                
-                {/* Catch all - redirect to dashboard */}
+
+                {/* Legacy section pages */}
+                <Route path="legacy/projects" element={<Layout sidebar={<LegacySidebar />}><Projects /></Layout>} />
+                <Route path="legacy/gl-accounts" element={<Layout sidebar={<LegacySidebar />}><GLAccounts /></Layout>} />
+                <Route path="legacy/expenses" element={<Layout sidebar={<LegacySidebar />}><Expenses /></Layout>} />
+                <Route path="legacy/vendors" element={<Layout sidebar={<LegacySidebar />}><Vendors /></Layout>} />
+
+                {/* Planning section pages */}
+                <Route path="planning/budget-vs-actual" element={<Layout sidebar={<PlanningSidebar />}><BudgetVsActual /></Layout>} />
+                <Route path="planning/strategic-planning" element={<Layout sidebar={<PlanningSidebar />}><StrategicPlanning /></Layout>} />
+                <Route path="planning/vendor-optimization" element={<Layout sidebar={<PlanningSidebar />}><VendorOptimization /></Layout>} />
+                <Route path="planning/scenario-planning" element={<Layout sidebar={<PlanningSidebar />}><ScenarioPlanning /></Layout>} />
+
+                {/* Square section (placeholder) */}
+                <Route path="square" element={<Layout sidebar={<SquareSidebar />}><SquarePlaceholder /></Layout>} />
+
+                {/* Legacy section index redirect */}
+                <Route path="legacy" element={<Navigate to="/legacy/projects" replace />} />
+                {/* Planning section index redirect */}
+                <Route path="planning" element={<Navigate to="/planning/budget-vs-actual" replace />} />
+
+                {/* Catch all - redirect to choose menu */}
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
             </AuthProvider>
