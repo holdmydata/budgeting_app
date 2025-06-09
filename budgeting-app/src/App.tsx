@@ -16,7 +16,6 @@ import Expenses from './pages/legacy/Expenses';
 import Vendors from './pages/legacy/Vendors';
 import DataSourceConfig from './components/DataSourceConfig';
 import { Suspense, useEffect } from 'react';
-import { ChooseMenu } from './pages/ChooseMenu';
 import { LegacySidebar } from './components/sidebars/LegacySidebar';
 import { PlanningSidebar } from './components/sidebars/PlanningSidebar';
 import { SquareSidebar } from './components/sidebars/SquareSidebar';
@@ -131,7 +130,7 @@ function App() {
             <AuthProvider>
               <Routes>
                 {/* Landing choose menu */}
-                <Route path="/" element={<Layout><ChooseMenu /></Layout>} />
+                <Route path="/" element={<Layout><Dashboard /></Layout>} />
                 <Route path="login" element={<Login />} />
                 <Route path="dashboard" element={<Layout><Dashboard /></Layout>} />
                 <Route path="help" element={<Layout><Help /></Layout>} />
@@ -140,15 +139,16 @@ function App() {
                 <Route path="settings" element={<Layout><Settings /></Layout>} />
                 <Route path="profile" element={<Layout><Profile /></Layout>} />
                 <Route path="data-source" element={<Layout><DataSourceConfig /></Layout>} />
+                <Route path="planning/budget-vs-actual" element={<Layout ><BudgetVsActual /></Layout>} />
 
                 {/* Legacy section pages */}
-                <Route path="legacy/projects" element={<Layout sidebar={<LegacySidebar />}><Projects /></Layout>} />
-                <Route path="legacy/gl-accounts" element={<Layout sidebar={<LegacySidebar />}><GLAccounts /></Layout>} />
-                <Route path="legacy/expenses" element={<Layout sidebar={<LegacySidebar />}><Expenses /></Layout>} />
-                <Route path="legacy/vendors" element={<Layout sidebar={<LegacySidebar />}><Vendors /></Layout>} />
+                <Route path="legacy/projects" element={<Layout ><Projects /></Layout>} />
+                <Route path="legacy/gl-accounts" element={<Layout ><GLAccounts /></Layout>} />
+                <Route path="legacy/expenses" element={<Layout ><Expenses /></Layout>} />
+                <Route path="legacy/vendors" element={<Layout ><Vendors /></Layout>} />
 
                 {/* Planning section pages */}
-                <Route path="planning/budget-vs-actual" element={<Layout sidebar={<PlanningSidebar />}><BudgetVsActual /></Layout>} />
+
                 <Route path="planning/strategic-planning" element={<Layout sidebar={<PlanningSidebar />}><StrategicPlanning /></Layout>} />
                 <Route path="planning/vendor-optimization" element={<Layout sidebar={<PlanningSidebar />}><VendorOptimization /></Layout>} />
                 <Route path="planning/scenario-planning" element={<Layout sidebar={<PlanningSidebar />}><ScenarioPlanning /></Layout>} />

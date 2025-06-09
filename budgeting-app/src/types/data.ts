@@ -2,19 +2,12 @@
 
 // GL Account Dimension with Type 2 SCD support
 export interface GLAccount {
-  id: string;               // Surrogate key
-  accountNumber: string;    // Natural key (business key)
+  id: string;
+  accountNumber: string;
   accountName: string;
-  accountType: string;
+  accountCategory: string;
+  accountSubCategory: string;
   isActive: boolean;
-  validFrom: string;       // When this version became active
-  validTo: string | null;  // When this version became inactive (null if current)
-  isCurrent: boolean;      // Flag for current version
-  createdAt: string;
-  updatedAt: string;
-  // Optional fields for tracking changes
-  modifiedBy?: string;     // Who made the change
-  changeReason?: string;   // Why the change was made
 }
 
 // Helper type for GL Account changes
@@ -78,12 +71,17 @@ export interface Project {
 // GL Project Mapping
 export interface GLProjectMapping {
   id: string;
-  glAccountId: string;
+  projectCode: string;
   projectId: string;
-  allocationPercentage: number;
+  description: string;
   startDate: string;
-  endDate?: string;
-  createdBy: string;
+  endDate: string;
+  budget: number;
+  spent: number;
+  status: 'Planned' | 'In Progress' | 'Completed' | 'On Hold' | 'Cancelled';
+  owner: string;
+  priority: 'Low' | 'Medium' | 'High' | 'Critical';
+  glAccount: string;
   createdAt: string;
   updatedAt: string;
 }
